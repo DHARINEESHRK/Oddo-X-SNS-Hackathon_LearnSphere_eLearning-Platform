@@ -16,7 +16,20 @@ export function LoginPage({ onBackToHome }: { onBackToHome: () => void }) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    
+
+    // Basic validation
+    if (!email || !password) {
+      setError('Please fill in all fields');
+      return;
+    }
+
+    // Email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError('Please enter a valid email address');
+      return;
+    }
+
     if (mode === 'signin') {
       const success = login(email, password);
       if (!success) {
@@ -24,10 +37,27 @@ export function LoginPage({ onBackToHome }: { onBackToHome: () => void }) {
       }
       // If successful, the app will automatically show the dashboard
     } else {
+      // Sign-up mode validation
+      if (!name || !email || !password || !confirmPassword) {
+        setError('Please fill in all fields');
+        return;
+      }
+
+      if (name.trim().length < 2) {
+        setError('Name must be at least 2 characters');
+        return;
+      }
+
+      if (password.length < 6) {
+        setError('Password must be at least 6 characters');
+        return;
+      }
+
       if (password !== confirmPassword) {
         setError('Passwords do not match');
         return;
       }
+
       const success = register(name, email, password);
       if (!success) {
         setError('Email already registered');
@@ -48,7 +78,7 @@ export function LoginPage({ onBackToHome }: { onBackToHome: () => void }) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: 'easeInOut' }}
         >
-          <h1 
+          <h1
             className="text-5xl text-[#202732] mb-2 cursor-pointer"
             style={{ fontFamily: 'Caveat, cursive', fontWeight: 600 }}
             onClick={onBackToHome}
@@ -72,11 +102,10 @@ export function LoginPage({ onBackToHome }: { onBackToHome: () => void }) {
             <button
               type="button"
               onClick={() => setMode('signin')}
-              className={`flex-1 py-2.5 rounded-lg transition-all duration-300 ${
-                mode === 'signin'
+              className={`flex-1 py-2.5 rounded-lg transition-all duration-300 ${mode === 'signin'
                   ? 'bg-[#6E5B6A] text-white shadow-md'
                   : 'text-[#202732] hover:bg-white/50'
-              }`}
+                }`}
               style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}
             >
               Sign In
@@ -84,11 +113,10 @@ export function LoginPage({ onBackToHome }: { onBackToHome: () => void }) {
             <button
               type="button"
               onClick={() => setMode('signup')}
-              className={`flex-1 py-2.5 rounded-lg transition-all duration-300 ${
-                mode === 'signup'
+              className={`flex-1 py-2.5 rounded-lg transition-all duration-300 ${mode === 'signup'
                   ? 'bg-[#6E5B6A] text-white shadow-md'
                   : 'text-[#202732] hover:bg-white/50'
-              }`}
+                }`}
               style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}
             >
               Sign Up

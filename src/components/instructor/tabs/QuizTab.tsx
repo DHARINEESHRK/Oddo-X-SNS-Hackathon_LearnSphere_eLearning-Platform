@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { Plus, HelpCircle, Edit, Trash2, Award } from 'lucide-react';
 import { QuizBuilderPage } from '../QuizBuilderPage';
+import { useToast } from '../../ui/toast';
 
 interface Quiz {
   id: string;
@@ -20,16 +21,20 @@ export function QuizTab() {
   const [quizzes, setQuizzes] = useState<Quiz[]>(mockQuizzes);
   const [editingQuizId, setEditingQuizId] = useState<string | null>(null);
   const [isCreatingQuiz, setIsCreatingQuiz] = useState(false);
+  const { showToast } = useToast();
+
+  const handleQuizSaved = () => {
+    showToast('Quiz added successfully');
+    setEditingQuizId(null);
+    setIsCreatingQuiz(false);
+  };
 
   // If editing or creating, show the quiz builder
   if (editingQuizId || isCreatingQuiz) {
     return (
       <QuizBuilderPage
         quizId={editingQuizId || 'new'}
-        onBack={() => {
-          setEditingQuizId(null);
-          setIsCreatingQuiz(false);
-        }}
+        onBack={handleQuizSaved}
       />
     );
   }

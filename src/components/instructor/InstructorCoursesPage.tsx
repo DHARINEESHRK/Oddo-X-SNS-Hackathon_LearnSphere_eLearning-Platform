@@ -4,6 +4,7 @@ import { Plus, BookOpen, Clock, Users, MoreVertical } from 'lucide-react';
 import { BackgroundAnimation } from '../BackgroundAnimation';
 import { CourseEditorFlow } from './CourseEditorFlow';
 import { InstructorDashboardCourses } from './InstructorDashboardCourses';
+import { useToast } from '../ui/toast';
 
 interface Course {
   id: string;
@@ -49,16 +50,22 @@ const mockCourses: Course[] = [
 export function InstructorCoursesPage() {
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
   const [isCreatingNew, setIsCreatingNew] = useState(false);
+  const { showToast } = useToast();
+
+  const handleCourseSaved = (isNewCourse: boolean) => {
+    if (isNewCourse) {
+      showToast('Course created successfully');
+    }
+    setSelectedCourseId(null);
+    setIsCreatingNew(false);
+  };
 
   // If a course is selected or creating new, show the editor
   if (selectedCourseId || isCreatingNew) {
     return (
       <CourseEditorFlow
         courseId={selectedCourseId || 'new'}
-        onBack={() => {
-          setSelectedCourseId(null);
-          setIsCreatingNew(false);
-        }}
+        onBack={() => handleCourseSaved(isCreatingNew)}
       />
     );
   }

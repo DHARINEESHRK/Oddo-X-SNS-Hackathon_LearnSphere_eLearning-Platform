@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
+import { ToastProvider } from './components/ui/toast';
 import { Navigation } from './components/Navigation';
 import { HeroSection } from './components/HeroSection';
 import { AppIcons } from './components/AppIcons';
@@ -33,7 +34,9 @@ function AppContent() {
 export default function App() {
   return (
     <AppProvider>
-      <AppContent />
+      <ToastProvider>
+        <AppContent />
+      </ToastProvider>
     </AppProvider>
   );
 }

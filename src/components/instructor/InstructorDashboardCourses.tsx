@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Plus, BookOpen, Clock, MoreVertical, Edit, BarChart3, Copy, Trash2 } from 'lucide-react';
+import { DeleteConfirmationModal } from './modals/DeleteConfirmationModal';
+import { ReportingDashboard } from './ReportingDashboard';
 
 interface Course {
   id: string;
@@ -16,6 +18,7 @@ interface InstructorDashboardCoursesProps {
   onCreateCourse: () => void;
   onEditCourse: (courseId: string) => void;
 }
+
 
 const sampleCourses: Course[] = [
   {
@@ -76,6 +79,10 @@ const sampleCourses: Course[] = [
 
 export function InstructorDashboardCourses({ onCreateCourse, onEditCourse }: InstructorDashboardCoursesProps) {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [courses, setCourses] = useState<Course[]>(sampleCourses);
+  const [showReporting, setShowReporting] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [courseToDelete, setCourseToDelete] = useState<Course | null>(null);
 
   const handleMenuToggle = (courseId: string) => {
     setOpenMenuId(openMenuId === courseId ? null : courseId);
@@ -88,18 +95,62 @@ export function InstructorDashboardCourses({ onCreateCourse, onEditCourse }: Ins
 
   const handleViewAnalytics = (courseId: string) => {
     setOpenMenuId(null);
-    console.log('View analytics for course:', courseId);
+    setShowReporting(true);
   };
 
   const handleDuplicate = (courseId: string) => {
     setOpenMenuId(null);
-    console.log('Duplicate course:', courseId);
+    const courseToDuplicate = courses.find(c => c.id === courseId);
+    if (courseToDuplicate) {
+      const newCourse: Course = {
+        ...courseToDuplicate,
+        id: `course-${Date.now()}`,
+        title: `${courseToDuplicate.title} (Copy)`,
+        isPublished: false,
+      };
+      setCourses([...courses, newCourse]);
+    }
   };
 
-  const handleDelete = (courseId: string) => {
+  const handleDeleteClick = (courseId: string) => {
     setOpenMenuId(null);
-    console.log('Delete course:', courseId);
+    const course = courses.find(c => c.id === courseId);
+    if (course) {
+      setCourseToDelete(course);
+      setDeleteModalOpen(true);
+    }
   };
+
+  const handleConfirmDelete = () => {
+    if (courseToDelete) {
+      setCourses(courses.filter(c => c.id !== courseToDelete.id));
+      setDeleteModalOpen(false);
+      setCourseToDelete(null);
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setDeleteModalOpen(false);
+    setCourseToDelete(null);
+  };
+
+  // If showing reporting dashboard, render it
+  if (showReporting) {
+    return (
+      <div className="min-h-screen bg-[#F1F2F4]">
+        <div className="max-w-7xl mx-auto px-8 py-8">
+          <button
+            onClick={() => setShowReporting(false)}
+            className="mb-4 flex items-center gap-2 text-[#6E5B6A] hover:bg-[#F1F2F4] px-4 py-2 rounded-lg transition-colors"
+            style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}
+          >
+            ← Back to Courses
+          </button>
+          <ReportingDashboard />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#F1F2F4] py-12">
@@ -107,7 +158,7 @@ export function InstructorDashboardCourses({ onCreateCourse, onEditCourse }: Ins
         {/* Header */}
         <div className="flex items-center justify-between mb-12">
           <div>
-            <motion.h1 
+            <motion.h1
               className="text-[36px] font-bold text-[#202732] mb-2 relative inline-block"
               style={{ fontFamily: 'Caveat, cursive', fontWeight: 700 }}
               initial={{ opacity: 0, y: -20 }}
@@ -116,8 +167,8 @@ export function InstructorDashboardCourses({ onCreateCourse, onEditCourse }: Ins
             >
               Your Courses
               {/* Animated Yellow Brush Underline */}
-              <svg 
-                className="absolute -bottom-2 left-0 w-full h-4" 
+              <svg
+                className="absolute -bottom-2 left-0 w-full h-4"
                 viewBox="0 0 200 12"
                 preserveAspectRatio="none"
               >
@@ -153,7 +204,7 @@ export function InstructorDashboardCourses({ onCreateCourse, onEditCourse }: Ins
 
         {/* Course Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {sampleCourses.map((course, index) => (
+          {courses.map((course, index) => (
             <motion.div
               key={course.id}
               className="bg-white rounded-2xl border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow"
@@ -164,12 +215,12 @@ export function InstructorDashboardCourses({ onCreateCourse, onEditCourse }: Ins
             >
               {/* Course Thumbnail */}
               <div className="relative h-48 bg-gray-200 overflow-hidden">
-                <img 
-                  src={course.thumbnail} 
+                <img
+                  src={course.thumbnail}
                   alt={course.title}
                   className="w-full h-full object-cover"
                 />
-                
+
                 {/* Three-dot Menu */}
                 <div className="absolute top-4 right-4">
                   <button
@@ -178,7 +229,7 @@ export function InstructorDashboardCourses({ onCreateCourse, onEditCourse }: Ins
                   >
                     <MoreVertical className="w-5 h-5 text-[#202732]" />
                   </button>
-                  
+
                   {/* Dropdown Menu */}
                   <AnimatePresence>
                     {openMenuId === course.id && (
@@ -197,7 +248,7 @@ export function InstructorDashboardCourses({ onCreateCourse, onEditCourse }: Ins
                           <Edit className="w-4 h-4 text-[#6E5B6A]" />
                           <span className="text-[#202732]">Edit Course</span>
                         </button>
-                        
+
                         <button
                           onClick={() => handleViewAnalytics(course.id)}
                           className="w-full px-4 py-2 text-left flex items-center gap-3 hover:bg-gray-50 transition-colors"
@@ -206,7 +257,7 @@ export function InstructorDashboardCourses({ onCreateCourse, onEditCourse }: Ins
                           <BarChart3 className="w-4 h-4 text-[#6E5B6A]" />
                           <span className="text-[#202732]">View Analytics</span>
                         </button>
-                        
+
                         <button
                           onClick={() => handleDuplicate(course.id)}
                           className="w-full px-4 py-2 text-left flex items-center gap-3 hover:bg-gray-50 transition-colors"
@@ -215,11 +266,11 @@ export function InstructorDashboardCourses({ onCreateCourse, onEditCourse }: Ins
                           <Copy className="w-4 h-4 text-[#6E5B6A]" />
                           <span className="text-[#202732]">Duplicate</span>
                         </button>
-                        
+
                         <div className="border-t border-gray-200 my-1"></div>
-                        
+
                         <button
-                          onClick={() => handleDelete(course.id)}
+                          onClick={() => handleDeleteClick(course.id)}
                           className="w-full px-4 py-2 text-left flex items-center gap-3 hover:bg-red-50 transition-colors"
                           style={{ fontFamily: 'Inter, sans-serif' }}
                         >
@@ -234,14 +285,14 @@ export function InstructorDashboardCourses({ onCreateCourse, onEditCourse }: Ins
                 {/* Published/Draft Badge */}
                 <div className="absolute bottom-4 left-4">
                   {course.isPublished ? (
-                    <span 
+                    <span
                       className="px-3 py-1 bg-[#2FBF71] text-white text-xs font-semibold rounded-full"
                       style={{ fontFamily: 'Inter, sans-serif' }}
                     >
                       Published
                     </span>
                   ) : (
-                    <span 
+                    <span
                       className="px-3 py-1 bg-gray-50 text-[#9CA3AF] border border-[#9CA3AF] text-xs font-semibold rounded-full"
                       style={{ fontFamily: 'Inter, sans-serif' }}
                     >
@@ -253,7 +304,7 @@ export function InstructorDashboardCourses({ onCreateCourse, onEditCourse }: Ins
 
               {/* Card Content */}
               <div className="p-6">
-                <h3 
+                <h3
                   className="text-[20px] font-medium text-[#202732] mb-3 line-clamp-2"
                   style={{ fontFamily: 'Inter, sans-serif' }}
                 >
@@ -281,7 +332,7 @@ export function InstructorDashboardCourses({ onCreateCourse, onEditCourse }: Ins
                       {course.lessons} lessons
                     </span>
                   </div>
-                  
+
                   <div className="flex items-center gap-2">
                     <Clock className="w-4 h-4" />
                     <span className="text-sm" style={{ fontFamily: 'Inter, sans-serif' }}>
@@ -294,8 +345,16 @@ export function InstructorDashboardCourses({ onCreateCourse, onEditCourse }: Ins
           ))}
         </div>
 
+        {/* Delete Confirmation Modal */}
+        <DeleteConfirmationModal
+          isOpen={deleteModalOpen}
+          courseTitle={courseToDelete?.title || ''}
+          onConfirm={handleConfirmDelete}
+          onCancel={handleCancelDelete}
+        />
+
         {/* Empty State (if no courses) */}
-        {sampleCourses.length === 0 && (
+        {courses.length === 0 && (
           <motion.div
             className="text-center py-20"
             initial={{ opacity: 0 }}
@@ -303,13 +362,13 @@ export function InstructorDashboardCourses({ onCreateCourse, onEditCourse }: Ins
             transition={{ duration: 0.6 }}
           >
             <div className="text-6xl mb-4">📚</div>
-            <h3 
+            <h3
               className="text-2xl font-semibold text-[#202732] mb-2"
               style={{ fontFamily: 'Caveat, cursive' }}
             >
               No courses yet
             </h3>
-            <p 
+            <p
               className="text-gray-600 mb-6"
               style={{ fontFamily: 'Inter, sans-serif' }}
             >

@@ -107,6 +107,7 @@ export function CoursesPage() {
       const matchesSearch =
         searchQuery === '' ||
         course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        course.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
         course.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
         course.tags.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase()));
 
