@@ -144,6 +144,7 @@ export const mockCourses: Course[] = [
     ],
     createdAt: '2025-01-01',
     updatedAt: '2025-02-05',
+    viewCount: 1450,
   },
   {
     id: 'course-2',
@@ -186,6 +187,7 @@ export const mockCourses: Course[] = [
     quizzes: [],
     createdAt: '2025-01-15',
     updatedAt: '2025-02-07',
+    viewCount: 780,
   },
   {
     id: 'course-3',
@@ -218,6 +220,7 @@ export const mockCourses: Course[] = [
     quizzes: [],
     createdAt: '2025-01-20',
     updatedAt: '2025-02-03',
+    viewCount: 560,
   },
   {
     id: 'course-4',
@@ -239,6 +242,7 @@ export const mockCourses: Course[] = [
     quizzes: [],
     createdAt: '2025-02-01',
     updatedAt: '2025-02-07',
+    viewCount: 45, // Low views since it's unpublished
   },
 ];
 

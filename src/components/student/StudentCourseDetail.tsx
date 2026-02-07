@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   ArrowLeft,
@@ -11,8 +11,14 @@ import {
   BookOpen,
   Star,
   TrendingUp,
+  MessageSquare,
+  Send,
 } from 'lucide-react';
 import { BackgroundAnimation } from '../BackgroundAnimation';
+import { useApp } from '../../context/AppContext';
+import { Review } from '../../types';
+import { useToast } from '../ui/toast';
+import { AccessRestricted } from '../ui/AccessRestricted';
 
 interface Lesson {
   id: string;
@@ -23,14 +29,7 @@ interface Lesson {
   isLocked: boolean;
 }
 
-interface Review {
-  id: string;
-  userName: string;
-  userAvatar: string;
-  rating: number;
-  date: string;
-  comment: string;
-}
+
 
 interface StudentCourseDetailProps {
   courseId: string;
@@ -43,19 +42,89 @@ export function StudentCourseDetail({
   onBack,
   onLessonClick,
 }: StudentCourseDetailProps) {
+  const { incrementViewCount, currentUser, getCourseReviews, addReview, getCourseById, canViewCourse, joinCourseWithInvite } = useApp();
+  const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState<'overview' | 'reviews'>('overview');
+  const [resumeLessonId, setResumeLessonId] = useState<string>('');
+  const [accessDenied, setAccessDenied] = useState(false);
+  const [checkingAccess, setCheckingAccess] = useState(true);
+
+  // Review form state
+  const [newRating, setNewRating] = useState(5);
+  const [newComment, setNewComment] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const reviews = getCourseReviews(courseId);
+  const contextCourse = getCourseById(courseId);
+
+  const userHasReviewed = currentUser ? reviews.some(r => r.userId === currentUser.id) : false;
+
+  const averageRating = reviews.length > 0
+    ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1)
+    : (contextCourse?.rating || 0).toFixed(1);
+
+  const reviewCount = reviews.length;
+
+  // Check access permissions
+  useEffect(() => {
+    const checkAccess = () => {
+      // 1. Check if we have an invitation token in URL
+      const searchParams = new URLSearchParams(window.location.search);
+      const inviteToken = searchParams.get('invite');
+
+      if (inviteToken) {
+        // Attempt to join with the token
+        const joined = joinCourseWithInvite(courseId, inviteToken);
+        if (joined) {
+          showToast("Invitation Verified: You have joined the course!", "success");
+          setAccessDenied(false);
+          setCheckingAccess(false);
+          return;
+        } else {
+          // Token invalid
+          if (!canViewCourse(courseId)) {
+            showToast("Invalid Invitation Token", "error");
+          }
+        }
+      }
+
+      // 2. Standard permission check
+      if (!canViewCourse(courseId)) {
+        setAccessDenied(true);
+      } else {
+        setAccessDenied(false);
+      }
+      setCheckingAccess(false);
+    };
+
+    checkAccess();
+  }, [courseId, canViewCourse, joinCourseWithInvite, currentUser]);
+
+  // Increment view count when component mounts (only if allowed)
+  useEffect(() => {
+    if (!accessDenied && !checkingAccess) {
+      incrementViewCount(courseId);
+    }
+  }, [courseId, incrementViewCount, accessDenied, checkingAccess]);
+
+  if (checkingAccess) {
+    return <div className="min-h-screen bg-[#F1F2F4] flex items-center justify-center">Loading...</div>;
+  }
+
+  if (accessDenied) {
+    return <AccessRestricted onBack={onBack} />;
+  }
 
   // Sample course data
   const course = {
-    title: 'React Fundamentals',
-    description:
-      'Master the fundamentals of React and build modern, interactive web applications with confidence.',
-    instructor: 'Sarah Martinez',
-    totalLessons: 12,
-    completedLessons: 5,
-    progress: 42,
-    rating: 4.8,
-    reviewCount: 324,
+    title: contextCourse?.title || 'React Fundamentals',
+    description: contextCourse?.description || 'Master the fundamentals of React and build modern, interactive web applications with confidence.',
+    instructor: contextCourse?.instructorName || 'Sarah Martinez',
+    totalLessons: contextCourse?.lessons?.length || 12,
+    completedLessons: 5, // This is mock, keeping for now
+    progress: 42, // This is mock
+    rating: parseFloat(averageRating as string),
+    reviewCount: reviewCount,
   };
 
   const lessons: Lesson[] = [
@@ -157,44 +226,66 @@ export function StudentCourseDetail({
     },
   ];
 
-  const reviews: Review[] = [
-    {
-      id: '1',
-      userName: 'Emily Chen',
-      userAvatar: 'EC',
-      rating: 5,
-      date: 'Feb 3, 2026',
-      comment:
-        'Excellent course! The instructor explains everything clearly and the examples are very practical. Highly recommended for beginners.',
-    },
-    {
-      id: '2',
-      userName: 'Michael Brown',
-      userAvatar: 'MB',
-      rating: 5,
-      date: 'Feb 1, 2026',
-      comment:
-        'Great structure and pacing. I went from zero React knowledge to building my first app in just two weeks!',
-    },
-    {
-      id: '3',
-      userName: 'Sarah Johnson',
-      userAvatar: 'SJ',
-      rating: 4,
-      date: 'Jan 28, 2026',
-      comment:
-        'Very informative course. The only improvement would be to add more advanced topics, but overall fantastic content.',
-    },
-    {
-      id: '4',
-      userName: 'David Lee',
-      userAvatar: 'DL',
-      rating: 5,
-      date: 'Jan 25, 2026',
-      comment:
-        'Perfect for beginners! The step-by-step approach made learning React much less intimidating.',
-    },
-  ];
+  // Determine lesson to resume
+  useEffect(() => {
+    // 1. Check local storage for this user and course
+    const updateResumeLesson = () => {
+      // Identify user (default to 'guest' if not logged in, though typically used in authenticated context)
+      const userId = currentUser?.id || 'guest';
+      const storageKey = `progress_${userId}_${courseId}`;
+      const lastCompletedId = localStorage.getItem(storageKey);
+
+      let nextLessonId = '';
+
+      if (lastCompletedId) {
+        const lastIndex = lessons.findIndex(l => l.id === lastCompletedId);
+        if (lastIndex !== -1 && lastIndex < lessons.length - 1) {
+          nextLessonId = lessons[lastIndex + 1].id;
+        }
+      }
+
+      // 2. Fallback to first incomplete lesson from mock data/props
+      if (!nextLessonId) {
+        const firstIncomplete = lessons.find(l => !l.isCompleted);
+        nextLessonId = firstIncomplete ? firstIncomplete.id : lessons[0].id;
+      }
+
+      setResumeLessonId(nextLessonId);
+    };
+
+    updateResumeLesson();
+    // Listen for storage changes in case of multi-tab
+    window.addEventListener('storage', updateResumeLesson);
+    return () => window.removeEventListener('storage', updateResumeLesson);
+  }, [courseId, currentUser]);
+
+  const handleSubmitReview = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentUser) return;
+
+    setIsSubmitting(true);
+
+    // Simulate API delay
+    setTimeout(() => {
+      const success = addReview({
+        userId: currentUser.id,
+        userName: currentUser.name,
+        userAvatar: currentUser.avatar,
+        courseId: courseId,
+        rating: newRating,
+        comment: newComment,
+      });
+
+      if (success) {
+        showToast("Review Submitted: Thank you for your feedback!", "success");
+        setNewComment('');
+        setNewRating(5);
+      } else {
+        showToast("Submission Failed: You have already reviewed this course.", "error");
+      }
+      setIsSubmitting(false);
+    }, 800);
+  };
 
   const tabs = [
     { id: 'overview', label: 'Overview' },
@@ -270,6 +361,22 @@ export function StudentCourseDetail({
             >
               {course.description}
             </p>
+
+
+            {/* Resume/Start Button */}
+            <motion.button
+              onClick={() => onLessonClick(resumeLessonId)}
+              className="mt-6 flex items-center gap-3 px-8 py-4 bg-[#6E5B6A] text-white rounded-xl font-bold shadow-lg shadow-[#6E5B6A]/30 hover:shadow-xl hover:shadow-[#6E5B6A]/40 transition-all hover:bg-[#5d4d59]"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              whileHover={{ scale: 1.05, y: -2 }}
+              whileTap={{ scale: 0.98 }}
+              style={{ fontFamily: 'Inter, sans-serif' }}
+            >
+              <PlayCircle className="w-6 h-6 fill-white text-[#6E5B6A]" />
+              {course.progress === 0 ? 'Start Learning' : course.progress === 100 ? 'Review Course' : 'Resume Learning'}
+            </motion.button>
           </div>
 
           {/* Instructor & Rating */}
@@ -408,8 +515,8 @@ export function StudentCourseDetail({
               >
                 <span
                   className={`text-lg transition-colors ${activeTab === tab.id
-                      ? 'text-[#6E5B6A] font-semibold'
-                      : 'text-gray-500 hover:text-[#6E5B6A]'
+                    ? 'text-[#6E5B6A] font-semibold'
+                    : 'text-gray-500 hover:text-[#6E5B6A]'
                     }`}
                   style={{ fontFamily: 'Inter, sans-serif' }}
                 >
@@ -475,10 +582,10 @@ export function StudentCourseDetail({
                           }
                           disabled={lesson.isLocked}
                           className={`w-full flex items-center gap-4 p-4 rounded-xl transition-all ${lesson.isLocked
-                              ? 'bg-gray-100 cursor-not-allowed opacity-60'
-                              : lesson.isCompleted
-                                ? 'bg-[#2FBF71]/5 hover:bg-[#2FBF71]/10'
-                                : 'bg-gray-50 hover:bg-gray-100 hover:shadow-md'
+                            ? 'bg-gray-100 cursor-not-allowed opacity-60'
+                            : lesson.isCompleted
+                              ? 'bg-[#2FBF71]/5 hover:bg-[#2FBF71]/10'
+                              : 'bg-gray-50 hover:bg-gray-100 hover:shadow-md'
                             }`}
                           initial={{ opacity: 0, x: -20 }}
                           animate={{ opacity: 1, x: 0 }}
@@ -568,11 +675,73 @@ export function StudentCourseDetail({
                 transition={{ duration: 0.3 }}
               >
                 <div className="bg-white rounded-2xl p-6 shadow-sm">
+                  {/* Add Review Form */}
+                  {!userHasReviewed && currentUser && (
+                    <div className="bg-gray-50 rounded-xl p-6 mb-8 border border-gray-100">
+                      <h4 className="font-semibold text-lg text-[#202732] mb-4" style={{ fontFamily: 'Inter, sans-serif' }}>
+                        Write a Review
+                      </h4>
+                      <form onSubmit={handleSubmitReview}>
+                        <div className="mb-4">
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Rating</label>
+                          <div className="flex gap-2">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <button
+                                key={star}
+                                type="button"
+                                onClick={() => setNewRating(star)}
+                                className="focus:outline-none transition-transform hover:scale-110"
+                              >
+                                <Star
+                                  className={`w-6 h-6 ${star <= newRating ? 'fill-[#F5AE35] text-[#F5AE35]' : 'text-gray-300'
+                                    }`}
+                                />
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="mb-4">
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Your Review</label>
+                          <textarea
+                            value={newComment}
+                            onChange={(e) => setNewComment(e.target.value)}
+                            required
+                            rows={3}
+                            className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-[#6E5B6A] focus:border-transparent outline-none transition-all resize-none"
+                            placeholder="Share your specialized experience..."
+                            style={{ fontFamily: 'Inter, sans-serif' }}
+                          />
+                        </div>
+                        <button
+                          type="submit"
+                          disabled={isSubmitting}
+                          className="flex items-center gap-2 px-6 py-2 bg-[#6E5B6A] text-white rounded-lg font-medium hover:bg-[#5d4d59] transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
+                        >
+                          {isSubmitting ? (
+                            'Submitting...'
+                          ) : (
+                            <>
+                              <Send className="w-4 h-4" />
+                              Submit Review
+                            </>
+                          )}
+                        </button>
+                      </form>
+                    </div>
+                  )}
+
+                  {userHasReviewed && (
+                    <div className="bg-green-50 text-green-800 px-4 py-3 rounded-xl mb-6 flex items-center gap-2">
+                      <CheckCircle2 className="w-5 h-5" />
+                      <span>You have already reviewed this course.</span>
+                    </div>
+                  )}
+
                   <h3
                     className="text-3xl text-[#202732] mb-6"
                     style={{ fontFamily: 'Caveat, cursive', fontWeight: 700 }}
                   >
-                    Student Reviews
+                    Student Reviews ({reviews.length})
                   </h3>
 
                   {/* Reviews List */}
@@ -587,8 +756,12 @@ export function StudentCourseDetail({
                       >
                         <div className="flex items-start gap-4">
                           {/* Avatar */}
-                          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#6E5B6A] to-[#8b7d8e] flex items-center justify-center text-white font-semibold flex-shrink-0">
-                            {review.userAvatar}
+                          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#6E5B6A] to-[#8b7d8e] flex items-center justify-center text-white font-semibold flex-shrink-0 overflow-hidden">
+                            {review.userAvatar ? (
+                              <img src={review.userAvatar} alt={review.userName} className="w-full h-full object-cover" />
+                            ) : (
+                              <span>{review.userName.charAt(0)}</span>
+                            )}
                           </div>
 
                           {/* Review Content */}
@@ -604,7 +777,7 @@ export function StudentCourseDetail({
                                 className="text-sm text-gray-500"
                                 style={{ fontFamily: 'Inter, sans-serif' }}
                               >
-                                {review.date}
+                                {new Date(review.createdAt).toLocaleDateString()}
                               </span>
                             </div>
 
@@ -614,8 +787,8 @@ export function StudentCourseDetail({
                                 <Star
                                   key={i}
                                   className={`w-4 h-4 ${i < review.rating
-                                      ? 'fill-[#F5AE35] text-[#F5AE35]'
-                                      : 'text-gray-300'
+                                    ? 'fill-[#F5AE35] text-[#F5AE35]'
+                                    : 'text-gray-300'
                                     }`}
                                 />
                               ))}
@@ -638,7 +811,7 @@ export function StudentCourseDetail({
             )}
           </AnimatePresence>
         </div>
-      </div>
-    </div>
+      </div >
+    </div >
   );
 }

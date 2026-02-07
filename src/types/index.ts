@@ -34,6 +34,11 @@ export interface Course {
   quizzes: Quiz[];
   createdAt: string;
   updatedAt: string;
+  // Analytics fields
+  viewCount?: number; // Number of times course detail page was viewed
+  totalDuration?: number; // Total duration in minutes (calculated from lessons)
+  invitedAttendees?: string[]; // Array of invited email addresses
+  isInvitationOnly?: boolean; // Whether the course requires an invitation
 }
 
 // Lesson interface
@@ -43,10 +48,13 @@ export interface Lesson {
   title: string;
   description: string;
   content: string;
+  type?: 'video' | 'document' | 'image' | 'quiz'; // Lesson type
   videoUrl?: string;
+  imageUrl?: string; // For image type lessons
   duration: string; // e.g., "15 min"
   order: number;
   completed?: boolean; // For learner progress
+  allowDownload?: boolean; // Permission to download lesson resources
 }
 
 // Quiz interface
@@ -58,6 +66,13 @@ export interface Quiz {
   questions: Question[];
   passingScore: number;
   order: number;
+  // Attempt-based rewards
+  rewardPoints?: {
+    firstAttempt: number;   // Points for passing on 1st try (X)
+    secondAttempt: number;  // Points for passing on 2nd try (Y)
+    thirdAttempt: number;   // Points for passing on 3rd try (Z)
+    fourthAttempt: number;  // Points for passing on 4th+ try (W)
+  };
 }
 
 // Question interface
@@ -66,8 +81,9 @@ export interface Question {
   quizId: string;
   question: string;
   options: string[];
-  correctAnswer: number; // Index of correct option
+  correctAnswers: number[]; // Indices of correct options (supports multiple)
   points: number;
+  explanation?: string; // Optional explanation for the answer
 }
 
 // Quiz attempt interface
@@ -113,6 +129,7 @@ export interface Enrollment {
   completedLessons: string[]; // Lesson IDs
   quizAttempts: QuizAttempt[];
   status: 'in-progress' | 'completed';
+  completedAt?: string;
 }
 
 // Course invite interface

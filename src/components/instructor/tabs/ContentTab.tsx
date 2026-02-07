@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Video, FileText, HelpCircle, MoreVertical, GripVertical, Edit, Trash2 } from 'lucide-react';
+import { Plus, Video, FileText, HelpCircle, MoreVertical, GripVertical, Edit, Trash2, Image } from 'lucide-react';
 import { LessonEditorModal } from '../modals/LessonEditorModal';
+import { QuizBuilderModal } from '../modals/QuizBuilderModal';
+import { Quiz } from '../../../types';
 
 interface Lesson {
   id: string;
   title: string;
-  type: 'video' | 'document' | 'quiz';
+  type: 'video' | 'document' | 'image' | 'quiz';
   duration?: string;
   order: number;
 }
@@ -14,8 +16,36 @@ interface Lesson {
 const mockLessons: Lesson[] = [
   { id: '1', title: 'Introduction to the Course', type: 'video', duration: '5:30', order: 1 },
   { id: '2', title: 'Setting Up Your Environment', type: 'document', order: 2 },
-  { id: '3', title: 'Your First Component', type: 'video', duration: '12:45', order: 3 },
-  { id: '4', title: 'Quick Knowledge Check', type: 'quiz', order: 4 },
+  { id: '3', title: 'Architecture Diagram', type: 'image', duration: '3:00', order: 3 },
+  { id: '4', title: 'Your First Component', type: 'video', duration: '12:45', order: 4 },
+  { id: '5', title: 'Quick Knowledge Check', type: 'quiz', order: 5 },
+];
+
+const mockQuizzes: Quiz[] = [
+  {
+    id: '5',
+    courseId: 'mock-course',
+    title: 'Quick Knowledge Check',
+    description: 'A quick quiz to test your knowledge of the basic concepts.',
+    questions: [
+      {
+        id: 'q1',
+        quizId: '5',
+        question: 'What is the main building block of a React application?',
+        options: ['Component', 'Module', 'Class', 'Function'],
+        correctAnswers: [0],
+        points: 10
+      }
+    ],
+    passingScore: 70,
+    order: 5,
+    rewardPoints: {
+      firstAttempt: 100,
+      secondAttempt: 80,
+      thirdAttempt: 60,
+      fourthAttempt: 40
+    }
+  }
 ];
 
 export function ContentTab() {
@@ -24,12 +54,19 @@ export function ContentTab() {
   const [editingLessonId, setEditingLessonId] = useState<string | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
+  // Quiz builder state
+  const [quizBuilderOpen, setQuizBuilderOpen] = useState(false);
+  const [editingQuiz, setEditingQuiz] = useState<Quiz | null>(null);
+  const [quizzes, setQuizzes] = useState<Quiz[]>(mockQuizzes);
+
   const getLessonIcon = (type: Lesson['type']) => {
     switch (type) {
       case 'video':
         return Video;
       case 'document':
         return FileText;
+      case 'image':
+        return Image;
       case 'quiz':
         return HelpCircle;
     }
@@ -41,6 +78,8 @@ export function ContentTab() {
         return 'bg-purple-100 text-purple-700';
       case 'document':
         return 'bg-blue-100 text-blue-700';
+      case 'image':
+        return 'bg-green-100 text-green-700';
       case 'quiz':
         return 'bg-yellow-100 text-yellow-700';
     }
@@ -129,14 +168,22 @@ export function ContentTab() {
                     >
                       <button
                         onClick={() => {
-                          setEditingLessonId(lesson.id);
+                          // Check if this is a quiz lesson
+                          if (lesson.type === 'quiz') {
+                            // Find the quiz data (if exists)
+                            const quiz = quizzes.find(q => q.id === lesson.id);
+                            setEditingQuiz(quiz || null);
+                            setQuizBuilderOpen(true);
+                          } else {
+                            setEditingLessonId(lesson.id);
+                          }
                           setOpenMenuId(null);
                         }}
                         className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
                         style={{ fontFamily: 'Inter, sans-serif' }}
                       >
                         <Edit className="w-4 h-4" />
-                        Edit Lesson
+                        {lesson.type === 'quiz' ? 'Edit Quiz' : 'Edit Lesson'}
                       </button>
                       <button
                         onClick={() => {
@@ -158,16 +205,35 @@ export function ContentTab() {
         </div>
 
         {/* Add Lesson Button */}
-        <motion.button
-          onClick={() => setIsAddingLesson(true)}
-          className="w-full py-4 border-2 border-dashed border-[#6E5B6A] text-[#6E5B6A] rounded-lg hover:bg-[#6E5B6A] hover:text-white transition-colors flex items-center justify-center gap-2"
-          whileHover={{ scale: 1.01 }}
-          whileTap={{ scale: 0.99 }}
-          style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}
-        >
-          <Plus className="w-5 h-5" />
-          Add Lesson
-        </motion.button>
+        {/* Add Actions */}
+        <div className="grid grid-cols-2 gap-4">
+          {/* Add Lesson Button */}
+          <motion.button
+            onClick={() => setIsAddingLesson(true)}
+            className="w-full py-4 border-2 border-dashed border-[#6E5B6A] text-[#6E5B6A] rounded-lg hover:bg-[#6E5B6A] hover:text-white transition-colors flex items-center justify-center gap-2"
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.99 }}
+            style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}
+          >
+            <Plus className="w-5 h-5" />
+            Add Lesson
+          </motion.button>
+
+          {/* Create Quiz Button */}
+          <motion.button
+            onClick={() => {
+              setEditingQuiz(null);
+              setQuizBuilderOpen(true);
+            }}
+            className="w-full py-4 border-2 border-dashed border-[#F5AE35] text-[#F5AE35] rounded-lg hover:bg-[#F5AE35] hover:text-white transition-colors flex items-center justify-center gap-2"
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.99 }}
+            style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}
+          >
+            <HelpCircle className="w-5 h-5" />
+            Create Quiz
+          </motion.button>
+        </div>
       </div>
 
       {/* Lesson Editor Modal */}
@@ -178,6 +244,50 @@ export function ContentTab() {
           setEditingLessonId(null);
         }}
         lessonId={editingLessonId}
+      />
+
+      {/* Quiz Builder Modal */}
+      <QuizBuilderModal
+        isOpen={quizBuilderOpen}
+        onClose={() => {
+          setQuizBuilderOpen(false);
+          setEditingQuiz(null);
+        }}
+        quiz={editingQuiz}
+        onSave={(quizData) => {
+          if (editingQuiz) {
+            // Update existing quiz
+            setQuizzes(quizzes.map(q => q.id === editingQuiz.id ? { ...editingQuiz, ...quizData } as Quiz : q));
+
+            // Sync title with lesson list
+            if (quizData.title) {
+              const newTitle = quizData.title;
+              setLessons(lessons.map(l => l.id === editingQuiz.id ? { ...l, title: newTitle } : l));
+            }
+          } else {
+            // Create new quiz
+            const newQuiz: Quiz = {
+              id: Date.now().toString(),
+              courseId: 'current-course-id', // Would come from context
+              title: quizData.title || 'Untitled Quiz',
+              description: quizData.description || '',
+              questions: quizData.questions || [],
+              passingScore: quizData.passingScore || 70,
+              rewardPoints: quizData.rewardPoints,
+              order: lessons.length + 1,
+            };
+            setQuizzes([...quizzes, newQuiz]);
+
+            // Add quiz as a lesson
+            const newLesson: Lesson = {
+              id: newQuiz.id,
+              title: newQuiz.title,
+              type: 'quiz',
+              order: lessons.length + 1,
+            };
+            setLessons([...lessons, newLesson]);
+          }
+        }}
       />
     </div>
   );

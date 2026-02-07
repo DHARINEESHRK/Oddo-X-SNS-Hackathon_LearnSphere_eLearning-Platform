@@ -13,6 +13,8 @@ import { Plus } from 'lucide-react';
 import { InstructorCoursesPage } from '../instructor/InstructorCoursesPage';
 import { StudentCourseDetail } from '../student/StudentCourseDetail';
 import { LessonPlayer } from '../student/LessonPlayer';
+import { RewardsPage } from '../student/RewardsPage';
+import { CertificatePage } from '../student/CertificatePage';
 
 const categories = [
   'All Courses',
@@ -95,7 +97,9 @@ export function CoursesPage() {
   const [showInstructorDashboard, setShowInstructorDashboard] = useState(false);
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
-  const { currentUser } = useApp();
+  const [showRewards, setShowRewards] = useState(false);
+  const [showCertificate, setShowCertificate] = useState(false);
+  const { currentUser, getCourseById, completeCourse, getUserEnrollments } = useApp();
 
   const isInstructor = currentUser?.role === 'instructor';
 
@@ -119,9 +123,15 @@ export function CoursesPage() {
 
   // If showing lesson player, render it
   if (selectedLessonId) {
+    const course = selectedCourseId ? getCourseById(selectedCourseId) : null;
+    const isLastLesson = course?.lessons && course.lessons.length > 0
+      ? course.lessons[course.lessons.length - 1].id === selectedLessonId
+      : false;
+
     return (
       <LessonPlayer
         lessonId={selectedLessonId}
+        courseId={selectedCourseId || 'demo-course'}
         onBack={() => setSelectedLessonId(null)}
         onComplete={() => {
           console.log('Lesson completed');
@@ -134,6 +144,30 @@ export function CoursesPage() {
           setSelectedCourseId(null);
         }}
         onLeaveReview={() => console.log('Leave review')}
+        isLastLesson={isLastLesson}
+        onCompleteCourse={() => {
+          if (selectedCourseId) {
+            completeCourse(selectedCourseId);
+            setShowCertificate(true);
+            setSelectedLessonId(null); // Exit player
+          }
+        }}
+      />
+    );
+  }
+
+  // If showing certificate, render it
+  if (showCertificate && selectedCourseId && currentUser) {
+    const course = getCourseById(selectedCourseId);
+    return (
+      <CertificatePage
+        courseName={course?.title || 'Course Completion'}
+        studentName={currentUser.name}
+        completionDate={new Date().toISOString()}
+        onBack={() => {
+          setShowCertificate(false);
+          setSelectedCourseId(null); // Go back to list
+        }}
       />
     );
   }
@@ -159,6 +193,36 @@ export function CoursesPage() {
     return <CourseEditor onBack={() => setShowEditor(false)} />;
   }
 
+  // If showing rewards, render rewards
+  if (showRewards && currentUser) {
+    const userEnrollments = getUserEnrollments(currentUser.id);
+    const completedEnrollments = userEnrollments.filter(e => e.status === 'completed');
+    const certificates = completedEnrollments.map(e => {
+      const course = getCourseById(e.courseId);
+      return {
+        id: e.courseId,
+        courseName: course?.title || 'Unknown Course',
+        completedAt: e.completedAt || new Date().toISOString(),
+        instructorName: course?.instructorName || 'LearnSphere Instructor',
+      };
+    });
+
+    return (
+      <RewardsPage
+        studentName={currentUser.name}
+        points={currentUser.points}
+        badges={currentUser.badges}
+        certificates={certificates}
+        onBack={() => setShowRewards(false)}
+        onViewCertificate={(courseId) => {
+          setShowRewards(false);
+          setSelectedCourseId(courseId);
+          setShowCertificate(true);
+        }}
+      />
+    );
+  }
+
   // === MAIN COURSES PAGE RENDER ===
 
   return (
@@ -166,7 +230,7 @@ export function CoursesPage() {
       <LearnHubBackgroundAnimations />
       <FloatingElements />
 
-      <LearnHubNavigation />
+      <LearnHubNavigation onShowRewards={() => setShowRewards(true)} />
 
       <main className="max-w-7xl mx-auto px-6 py-12 relative z-10">
         {/* Page Header */}

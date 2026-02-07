@@ -7,6 +7,8 @@ import {
   ChevronDown,
   Clock,
   AlertCircle,
+  Search,
+  Filter,
 } from 'lucide-react';
 
 interface CourseOption {
@@ -21,11 +23,14 @@ interface StudentProgress {
   progress: number;
   status: 'completed' | 'in-progress' | 'not-started';
   lastActivity: string;
+  timeSpent: string;
 }
 
 export function ReportingDashboard() {
   const [selectedCourse, setSelectedCourse] = useState('1');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'in-progress' | 'not-started'>('all');
 
   // Sample data
   const courses: CourseOption[] = [
@@ -44,6 +49,7 @@ export function ReportingDashboard() {
         progress: 100,
         status: 'completed',
         lastActivity: '2 hours ago',
+        timeSpent: '12h 30m',
       },
       {
         id: '2',
@@ -52,6 +58,7 @@ export function ReportingDashboard() {
         progress: 75,
         status: 'in-progress',
         lastActivity: '1 day ago',
+        timeSpent: '8h 15m',
       },
       {
         id: '3',
@@ -60,6 +67,7 @@ export function ReportingDashboard() {
         progress: 100,
         status: 'completed',
         lastActivity: '5 hours ago',
+        timeSpent: '10h 45m',
       },
       {
         id: '4',
@@ -68,6 +76,7 @@ export function ReportingDashboard() {
         progress: 45,
         status: 'in-progress',
         lastActivity: '3 days ago',
+        timeSpent: '5h 20m',
       },
       {
         id: '5',
@@ -76,6 +85,7 @@ export function ReportingDashboard() {
         progress: 30,
         status: 'in-progress',
         lastActivity: '12 hours ago',
+        timeSpent: '3h 10m',
       },
       {
         id: '6',
@@ -84,14 +94,16 @@ export function ReportingDashboard() {
         progress: 100,
         status: 'completed',
         lastActivity: '1 day ago',
+        timeSpent: '14h 00m',
       },
       {
         id: '7',
         name: 'Sophia Anderson',
         avatar: '👩‍🔧',
-        progress: 60,
-        status: 'in-progress',
-        lastActivity: '6 hours ago',
+        progress: 0,
+        status: 'not-started',
+        lastActivity: 'Never',
+        timeSpent: '0m',
       },
       {
         id: '8',
@@ -100,6 +112,7 @@ export function ReportingDashboard() {
         progress: 15,
         status: 'in-progress',
         lastActivity: '2 days ago',
+        timeSpent: '1h 45m',
       },
     ],
     '2': [
@@ -110,6 +123,7 @@ export function ReportingDashboard() {
         progress: 85,
         status: 'in-progress',
         lastActivity: '4 hours ago',
+        timeSpent: '9h 20m',
       },
       {
         id: '2',
@@ -118,6 +132,7 @@ export function ReportingDashboard() {
         progress: 100,
         status: 'completed',
         lastActivity: '1 day ago',
+        timeSpent: '15h 10m',
       },
     ],
   };
@@ -125,6 +140,13 @@ export function ReportingDashboard() {
   const currentStudents = studentsData[selectedCourse] || studentsData['1'];
   const currentCourse =
     courses.find((c) => c.id === selectedCourse) || courses[0];
+
+  // Filter students
+  const filteredStudents = currentStudents.filter((student) => {
+    const matchesSearch = student.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || student.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
 
   // Calculate summary stats
   const totalLearners = currentStudents.length;
@@ -153,7 +175,7 @@ export function ReportingDashboard() {
       case 'in-progress':
         return 'In Progress';
       default:
-        return 'Not Started';
+        return 'Yet to Start';
     }
   };
 
@@ -204,9 +226,8 @@ export function ReportingDashboard() {
                 {currentCourse.name}
               </span>
               <ChevronDown
-                className={`w-5 h-5 text-gray-500 transition-transform ${
-                  isDropdownOpen ? 'rotate-180' : ''
-                }`}
+                className={`w-5 h-5 text-gray-500 transition-transform ${isDropdownOpen ? 'rotate-180' : ''
+                  }`}
               />
             </button>
 
@@ -225,11 +246,10 @@ export function ReportingDashboard() {
                       setSelectedCourse(course.id);
                       setIsDropdownOpen(false);
                     }}
-                    className={`w-full px-4 py-3 text-left hover:bg-[#6E5B6A]/5 transition-colors ${
-                      course.id === selectedCourse
-                        ? 'bg-[#6E5B6A]/10 text-[#6E5B6A] font-medium'
-                        : 'text-gray-700'
-                    }`}
+                    className={`w-full px-4 py-3 text-left hover:bg-[#6E5B6A]/5 transition-colors ${course.id === selectedCourse
+                      ? 'bg-[#6E5B6A]/10 text-[#6E5B6A] font-medium'
+                      : 'text-gray-700'
+                      }`}
                     style={{ fontFamily: 'Inter, sans-serif' }}
                   >
                     {course.name}
@@ -358,14 +378,45 @@ export function ReportingDashboard() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.6 }}
         >
-          {/* Table Header */}
-          <div className="border-b border-gray-200 bg-gray-50 px-6 py-4">
+          {/* Table Header & Filters */}
+          <div className="border-b border-gray-200 bg-gray-50 px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <h3
               className="text-lg font-semibold text-gray-800"
               style={{ fontFamily: 'Inter, sans-serif' }}
             >
               Learner Progress
             </h3>
+
+            <div className="flex flex-col sm:flex-row gap-3">
+              {/* Search */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search student..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[#6E5B6A] w-full sm:w-48"
+                  style={{ fontFamily: 'Inter, sans-serif' }}
+                />
+              </div>
+
+              {/* Status Filter */}
+              <div className="relative">
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value as any)}
+                  className="pl-3 pr-8 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[#6E5B6A] bg-white appearance-none cursor-pointer w-full sm:w-40"
+                  style={{ fontFamily: 'Inter, sans-serif' }}
+                >
+                  <option value="all">All Status</option>
+                  <option value="completed">Completed</option>
+                  <option value="in-progress">In Progress</option>
+                  <option value="not-started">Yet to Start</option>
+                </select>
+                <Filter className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+              </div>
+            </div>
           </div>
 
           {/* Table */}
@@ -397,10 +448,16 @@ export function ReportingDashboard() {
                   >
                     Last Activity
                   </th>
+                  <th
+                    className="px-6 py-4 text-left text-sm font-semibold text-gray-700"
+                    style={{ fontFamily: 'Inter, sans-serif' }}
+                  >
+                    Time Spent
+                  </th>
                 </tr>
               </thead>
               <tbody>
-                {currentStudents.map((student, index) => (
+                {filteredStudents.map((student, index) => (
                   <motion.tr
                     key={student.id}
                     className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
@@ -461,6 +518,16 @@ export function ReportingDashboard() {
                         <Clock className="w-4 h-4" />
                         <span style={{ fontFamily: 'Inter, sans-serif' }}>
                           {student.lastActivity}
+                        </span>
+                      </div>
+                    </td>
+
+                    {/* Time Spent */}
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2 text-sm text-gray-700 font-medium">
+                        <Clock className="w-4 h-4 text-gray-400" />
+                        <span style={{ fontFamily: 'Inter, sans-serif' }}>
+                          {student.timeSpent}
                         </span>
                       </div>
                     </td>

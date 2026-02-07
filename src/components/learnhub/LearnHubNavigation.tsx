@@ -3,7 +3,11 @@ import { User, LogOut, GraduationCap, BookOpen } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { motion } from 'motion/react';
 
-export function LearnHubNavigation() {
+interface LearnHubNavigationProps {
+  onShowRewards?: () => void;
+}
+
+export function LearnHubNavigation({ onShowRewards }: LearnHubNavigationProps) {
   const { logout, currentUser } = useApp();
 
   const getRoleIcon = () => {
@@ -67,6 +71,18 @@ export function LearnHubNavigation() {
                 {currentUser?.email}
               </p>
             </div>
+
+            {/* Rewards Button */}
+            <motion.button
+              onClick={onShowRewards}
+              className="p-2 text-[#6E5B6A] hover:bg-[#F1F2F4] rounded-lg transition-colors relative"
+              title="Rewards"
+              whileHover={{ scale: 1.05 }}
+            >
+              <div className="w-6 h-6 flex items-center justify-center">
+                🏆
+              </div>
+            </motion.button>
 
             {/* Logout Button */}
             <motion.button

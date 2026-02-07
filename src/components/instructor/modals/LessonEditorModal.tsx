@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Upload, FileText, Paperclip } from 'lucide-react';
+import { X, Upload, FileText, Paperclip, Image } from 'lucide-react';
 
 type LessonTab = 'content' | 'description' | 'attachments';
 
@@ -13,7 +13,8 @@ interface LessonEditorModalProps {
 export function LessonEditorModal({ isOpen, onClose, lessonId }: LessonEditorModalProps) {
   const [activeTab, setActiveTab] = useState<LessonTab>('content');
   const [lessonTitle, setLessonTitle] = useState('');
-  const [lessonType, setLessonType] = useState<'video' | 'document' | 'quiz'>('video');
+  const [lessonType, setLessonType] = useState<'video' | 'document' | 'image' | 'quiz'>('video');
+  const [allowDownload, setAllowDownload] = useState(true);
 
   const tabs = [
     { id: 'content', label: 'Content' },
@@ -70,8 +71,8 @@ export function LessonEditorModal({ isOpen, onClose, lessonId }: LessonEditorMod
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id)}
                       className={`pb-3 text-sm font-medium relative transition-colors ${activeTab === tab.id
-                          ? 'text-[#6E5B6A]'
-                          : 'text-gray-500 hover:text-[#6E5B6A]'
+                        ? 'text-[#6E5B6A]'
+                        : 'text-gray-500 hover:text-[#6E5B6A]'
                         }`}
                       style={{ fontFamily: 'Inter, sans-serif' }}
                     >
@@ -133,14 +134,14 @@ export function LessonEditorModal({ isOpen, onClose, lessonId }: LessonEditorMod
                           >
                             Lesson Type
                           </label>
-                          <div className="grid grid-cols-3 gap-3">
-                            {(['video', 'document', 'quiz'] as const).map((type) => (
+                          <div className="grid grid-cols-4 gap-3">
+                            {(['video', 'document', 'image', 'quiz'] as const).map((type) => (
                               <button
                                 key={type}
                                 onClick={() => setLessonType(type)}
                                 className={`py-3 px-4 rounded-lg border-2 transition-all ${lessonType === type
-                                    ? 'border-[#6E5B6A] bg-[#6E5B6A]/5 text-[#6E5B6A]'
-                                    : 'border-gray-200 hover:border-gray-300'
+                                  ? 'border-[#6E5B6A] bg-[#6E5B6A]/5 text-[#6E5B6A]'
+                                  : 'border-gray-200 hover:border-gray-300'
                                   }`}
                                 style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
                               >
@@ -172,6 +173,33 @@ export function LessonEditorModal({ isOpen, onClose, lessonId }: LessonEditorMod
                                 style={{ fontFamily: 'Inter, sans-serif' }}
                               >
                                 Supports MP4, MOV, or YouTube/Vimeo links
+                              </p>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Image Upload (if image type) */}
+                        {lessonType === 'image' && (
+                          <div>
+                            <label
+                              className="block text-sm font-medium text-[#202732] mb-2"
+                              style={{ fontFamily: 'Inter, sans-serif' }}
+                            >
+                              Image Upload
+                            </label>
+                            <div className="border-2 border-dashed border-gray-300 hover:border-[#6E5B6A] rounded-lg p-8 text-center cursor-pointer transition-colors">
+                              <Image className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                              <p
+                                className="text-gray-600 mb-1"
+                                style={{ fontFamily: 'Inter, sans-serif' }}
+                              >
+                                Click to upload image or paste URL
+                              </p>
+                              <p
+                                className="text-xs text-gray-500"
+                                style={{ fontFamily: 'Inter, sans-serif' }}
+                              >
+                                Supports JPG, PNG, GIF, or image URLs
                               </p>
                             </div>
                           </div>
@@ -217,6 +245,37 @@ export function LessonEditorModal({ isOpen, onClose, lessonId }: LessonEditorMod
                           >
                             PDFs, slides, code files, etc.
                           </p>
+                        </div>
+
+                        {/* Download Permission Toggle */}
+                        <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <label
+                                className="block text-sm font-medium text-[#202732] mb-1"
+                                style={{ fontFamily: 'Inter, sans-serif' }}
+                              >
+                                Allow Downloads
+                              </label>
+                              <p
+                                className="text-xs text-gray-500"
+                                style={{ fontFamily: 'Inter, sans-serif' }}
+                              >
+                                Students can download lesson resources
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setAllowDownload(!allowDownload)}
+                              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#6E5B6A] focus:ring-offset-2 ${allowDownload ? 'bg-[#6E5B6A]' : 'bg-gray-300'
+                                }`}
+                            >
+                              <span
+                                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${allowDownload ? 'translate-x-6' : 'translate-x-1'
+                                  }`}
+                              />
+                            </button>
+                          </div>
                         </div>
                       </div>
                     )}
