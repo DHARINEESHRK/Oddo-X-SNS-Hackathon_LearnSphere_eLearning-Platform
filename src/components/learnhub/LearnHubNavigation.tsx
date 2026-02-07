@@ -5,7 +5,7 @@ import { motion } from 'motion/react';
 
 export function LearnHubNavigation() {
   const { logout, currentUser } = useApp();
-  
+
   const getRoleIcon = () => {
     if (currentUser?.role === 'instructor') {
       return <GraduationCap className="w-5 h-5 text-white" />;
@@ -14,7 +14,7 @@ export function LearnHubNavigation() {
     }
     return <User className="w-5 h-5 text-white" />;
   };
-  
+
   const getRoleColor = () => {
     if (currentUser?.role === 'instructor') {
       return 'bg-[#F4B860] hover:bg-[#E4A850]';
@@ -31,7 +31,7 @@ export function LearnHubNavigation() {
           <div className="flex items-center gap-3">
             {/* Logo */}
             <div>
-              <h1 
+              <h1
                 className="text-3xl text-[#6E5B6A]"
                 style={{ fontFamily: 'Brush Script MT, Caveat, cursive', fontWeight: 600 }}
               >
@@ -42,13 +42,13 @@ export function LearnHubNavigation() {
                 {currentUser?.role || 'User'}
               </p>
             </div>
-            
+
             {/* Profile Icon with Role Indicator */}
             <div className="relative ml-2">
               <button className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${getRoleColor()}`}>
                 {getRoleIcon()}
               </button>
-              
+
               {/* Role Badge */}
               <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-white rounded-full flex items-center justify-center border-2 border-white shadow-sm">
                 <div className={`w-3 h-3 rounded-full ${currentUser?.role === 'instructor' ? 'bg-[#F5AE35]' : 'bg-[#6E5B6A]'}`} />
@@ -71,7 +71,7 @@ export function LearnHubNavigation() {
             {/* Logout Button */}
             <motion.button
               onClick={logout}
-              className="flex items-center gap-2 px-4 py-2 text-[#6E5B6A] hover:bg-[#F1F2F4] rounded-lg transition-colors"
+              className="flex items-center gap-2 px-4 py-2 text-[#6E5B6A] hover:bg-[#F1F2F4] rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-[#6E5B6A] focus:ring-offset-2"
               title="Logout"
               whileHover={{ scale: 1.05 }}
             >

@@ -88,6 +88,7 @@ const coursesData: CourseData[] = [
 ];
 
 export function CoursesPage() {
+  // ALL HOOKS MUST BE DECLARED FIRST - React Rules of Hooks
   const [activeCategory, setActiveCategory] = useState('All Courses');
   const [searchQuery, setSearchQuery] = useState('');
   const [showEditor, setShowEditor] = useState(false);
@@ -95,10 +96,10 @@ export function CoursesPage() {
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
   const { currentUser } = useApp();
-  
+
   const isInstructor = currentUser?.role === 'instructor';
 
-  // Filter courses based on category and search query - MUST be before early return
+  // Filter courses based on category and search query
   const filteredCourses = useMemo(() => {
     return coursesData.filter((course) => {
       const matchesCategory =
@@ -108,10 +109,12 @@ export function CoursesPage() {
         course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         course.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
         course.tags.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase()));
-      
+
       return matchesCategory && matchesSearch;
     });
   }, [activeCategory, searchQuery]);
+
+  // === CONDITIONAL RENDERING (AFTER ALL HOOKS) ===
 
   // If showing lesson player, render it
   if (selectedLessonId) {
@@ -145,21 +148,23 @@ export function CoursesPage() {
     );
   }
 
-  // If showing instructor dashboard, render it instead (after all hooks)
+  // If showing instructor dashboard, render it
   if (showInstructorDashboard) {
     return <InstructorCoursesPage />;
   }
 
-  // If showing editor, render editor instead (after all hooks)
+  // If showing editor, render editor
   if (showEditor) {
     return <CourseEditor onBack={() => setShowEditor(false)} />;
   }
+
+  // === MAIN COURSES PAGE RENDER ===
 
   return (
     <div className="min-h-screen bg-[#F1F2F4] relative overflow-hidden">
       <LearnHubBackgroundAnimations />
       <FloatingElements />
-      
+
       <LearnHubNavigation />
 
       <main className="max-w-7xl mx-auto px-6 py-12 relative z-10">
@@ -175,7 +180,7 @@ export function CoursesPage() {
             >
               Explore Courses
             </motion.h1>
-            
+
             {/* Animated yellow highlight - using SVG like hero page */}
             <motion.svg
               className="absolute -bottom-3 left-0 w-full h-12 -z-10"
@@ -193,7 +198,7 @@ export function CoursesPage() {
                 opacity="0.6"
               />
             </motion.svg>
-            
+
             {/* Decorative sparkles around title */}
             <motion.div
               className="absolute -top-4 -right-4 text-[#F5AE35]"
@@ -216,7 +221,7 @@ export function CoursesPage() {
               💫
             </motion.div>
           </div>
-          
+
           <motion.p
             className="text-xl md:text-2xl text-[#202732] max-w-2xl mx-auto mb-6"
             style={{ fontFamily: 'Inter, sans-serif' }}
@@ -319,7 +324,7 @@ export function CoursesPage() {
                 whileHover={{ x: '100%' }}
                 transition={{ duration: 0.6 }}
               />
-              
+
               {/* Glow effect */}
               <motion.div
                 className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity"

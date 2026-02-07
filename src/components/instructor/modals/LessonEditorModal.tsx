@@ -69,11 +69,10 @@ export function LessonEditorModal({ isOpen, onClose, lessonId }: LessonEditorMod
                     <button
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id)}
-                      className={`pb-3 text-sm font-medium relative transition-colors ${
-                        activeTab === tab.id
+                      className={`pb-3 text-sm font-medium relative transition-colors ${activeTab === tab.id
                           ? 'text-[#6E5B6A]'
                           : 'text-gray-500 hover:text-[#6E5B6A]'
-                      }`}
+                        }`}
                       style={{ fontFamily: 'Inter, sans-serif' }}
                     >
                       {tab.label}
@@ -139,11 +138,10 @@ export function LessonEditorModal({ isOpen, onClose, lessonId }: LessonEditorMod
                               <button
                                 key={type}
                                 onClick={() => setLessonType(type)}
-                                className={`py-3 px-4 rounded-lg border-2 transition-all ${
-                                  lessonType === type
+                                className={`py-3 px-4 rounded-lg border-2 transition-all ${lessonType === type
                                     ? 'border-[#6E5B6A] bg-[#6E5B6A]/5 text-[#6E5B6A]'
                                     : 'border-gray-200 hover:border-gray-300'
-                                }`}
+                                  }`}
                                 style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
                               >
                                 {type.charAt(0).toUpperCase() + type.slice(1)}

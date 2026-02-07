@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { Award, Star, X } from 'lucide-react';
 
@@ -49,27 +50,48 @@ export function PointsBadgePopup({
     }
   }, [isOpen, pointsEarned]);
 
+  // ESC key handler to close popup
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [isOpen, onClose]);
+
   // Calculate badge progress
   const badgeProgress = Math.min((totalPoints % 100) / 100, 1) * 100;
   const nextBadgePoints = 100 - (totalPoints % 100);
 
-  // Confetti particles
-  const confettiParticles = Array.from({ length: 15 }, (_, i) => ({
+  // Reduced confetti for better performance (15 -> 8)
+  const confettiParticles = Array.from({ length: 8 }, (_, i) => ({
     id: i,
     x: Math.random() * 100,
     delay: Math.random() * 0.5,
     duration: 2 + Math.random() * 1,
   }));
 
-  return (
+  // Don't render anything if closed
+  if (!isOpen) return null;
+
+  // Render popup in portal at document body level for proper z-index stacking
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          className="fixed inset-0 z-50 flex items-center justify-center px-4"
+          className="fixed inset-0 z-[9999] flex items-center justify-center px-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.3 }}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="points-popup-title"
         >
           {/* Overlay */}
           <motion.div
@@ -157,6 +179,7 @@ export function PointsBadgePopup({
 
               {/* Headline */}
               <motion.h2
+                id="points-popup-title"
                 className="text-5xl md:text-6xl text-gray-800 mb-3"
                 style={{ fontFamily: 'Caveat, cursive', fontWeight: 700 }}
                 initial={{ opacity: 0, y: 10 }}
@@ -304,6 +327,7 @@ export function PointsBadgePopup({
           </motion.div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }

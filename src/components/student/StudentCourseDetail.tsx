@@ -407,11 +407,10 @@ export function StudentCourseDetail({
                 className="relative pb-4"
               >
                 <span
-                  className={`text-lg transition-colors ${
-                    activeTab === tab.id
+                  className={`text-lg transition-colors ${activeTab === tab.id
                       ? 'text-[#6E5B6A] font-semibold'
                       : 'text-gray-500 hover:text-[#6E5B6A]'
-                  }`}
+                    }`}
                   style={{ fontFamily: 'Inter, sans-serif' }}
                 >
                   {tab.label}
@@ -475,13 +474,12 @@ export function StudentCourseDetail({
                             !lesson.isLocked && onLessonClick(lesson.id)
                           }
                           disabled={lesson.isLocked}
-                          className={`w-full flex items-center gap-4 p-4 rounded-xl transition-all ${
-                            lesson.isLocked
+                          className={`w-full flex items-center gap-4 p-4 rounded-xl transition-all ${lesson.isLocked
                               ? 'bg-gray-100 cursor-not-allowed opacity-60'
                               : lesson.isCompleted
-                              ? 'bg-[#2FBF71]/5 hover:bg-[#2FBF71]/10'
-                              : 'bg-gray-50 hover:bg-gray-100 hover:shadow-md'
-                          }`}
+                                ? 'bg-[#2FBF71]/5 hover:bg-[#2FBF71]/10'
+                                : 'bg-gray-50 hover:bg-gray-100 hover:shadow-md'
+                            }`}
                           initial={{ opacity: 0, x: -20 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ duration: 0.3, delay: index * 0.05 }}
@@ -615,11 +613,10 @@ export function StudentCourseDetail({
                               {[...Array(5)].map((_, i) => (
                                 <Star
                                   key={i}
-                                  className={`w-4 h-4 ${
-                                    i < review.rating
+                                  className={`w-4 h-4 ${i < review.rating
                                       ? 'fill-[#F5AE35] text-[#F5AE35]'
                                       : 'text-gray-300'
-                                  }`}
+                                    }`}
                                 />
                               ))}
                             </div>
