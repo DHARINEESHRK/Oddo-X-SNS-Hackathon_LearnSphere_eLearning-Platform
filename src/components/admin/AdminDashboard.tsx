@@ -3,12 +3,19 @@ import { motion } from 'motion/react';
 import { useApp } from '../../context/AppContext';
 import { Users, BookOpen, TrendingUp, Settings, LogOut, Shield } from 'lucide-react';
 import { UserRole } from '../../types';
+import { useNavigate } from 'react-router-dom';
 
 type TabType = 'overview' | 'users' | 'courses' | 'settings';
 
 export function AdminDashboard() {
   const { currentUser, getAllUsers, courses, updateUserRole, logout } = useApp();
   const [activeTab, setActiveTab] = useState<TabType>('overview');
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
 
   if (!currentUser) return null;
 
@@ -52,7 +59,7 @@ export function AdminDashboard() {
                 <img src={currentUser.avatar} alt={currentUser.name} className="w-10 h-10 rounded-full" />
               )}
               <button
-                onClick={logout}
+                onClick={handleLogout}
                 className="p-2 hover:bg-[#F1F2F4] rounded-lg transition-colors"
                 title="Logout"
               >

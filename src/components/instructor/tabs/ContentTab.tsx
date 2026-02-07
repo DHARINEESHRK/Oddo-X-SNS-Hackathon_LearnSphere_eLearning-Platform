@@ -11,18 +11,26 @@ interface Lesson {
   order: number;
 }
 
-const mockLessons: Lesson[] = [
-  { id: '1', title: 'Introduction to the Course', type: 'video', duration: '5:30', order: 1 },
-  { id: '2', title: 'Setting Up Your Environment', type: 'document', order: 2 },
-  { id: '3', title: 'Your First Component', type: 'video', duration: '12:45', order: 3 },
-  { id: '4', title: 'Quick Knowledge Check', type: 'quiz', order: 4 },
-];
+interface ContentTabProps {
+  lessons: Lesson[];
+  onLessonsChange: (lessons: Lesson[]) => void;
+  onQuizLessonAdded?: (lessonTitle: string, questionCount: number) => void;
+}
 
-export function ContentTab() {
-  const [lessons, setLessons] = useState<Lesson[]>(mockLessons);
+export function ContentTab({ lessons, onLessonsChange, onQuizLessonAdded }: ContentTabProps) {
   const [isAddingLesson, setIsAddingLesson] = useState(false);
   const [editingLessonId, setEditingLessonId] = useState<string | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+
+  const editingLesson = editingLessonId ? lessons.find(l => l.id === editingLessonId) : undefined;
+
+  const handleLessonSave = (updatedLesson: Lesson) => {
+    onLessonsChange(lessons.map(l => l.id === updatedLesson.id ? updatedLesson : l));
+  };
+
+  const handleQuizLessonCreated = (lessonTitle: string, questionCount: number) => {
+    onQuizLessonAdded?.(lessonTitle, questionCount);
+  };
 
   const getLessonIcon = (type: Lesson['type']) => {
     switch (type) {
@@ -140,7 +148,7 @@ export function ContentTab() {
                       </button>
                       <button
                         onClick={() => {
-                          setLessons(lessons.filter((l) => l.id !== lesson.id));
+                          onLessonsChange(lessons.filter((l) => l.id !== lesson.id));
                           setOpenMenuId(null);
                         }}
                         className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
@@ -159,7 +167,17 @@ export function ContentTab() {
 
         {/* Add Lesson Button */}
         <motion.button
-          onClick={() => setIsAddingLesson(true)}
+          onClick={() => {
+            const newLesson: Lesson = {
+              id: String(Date.now()),
+              title: `Lesson ${lessons.length + 1}`,
+              type: 'video',
+              duration: '',
+              order: lessons.length + 1,
+            };
+            onLessonsChange([...lessons, newLesson]);
+            setEditingLessonId(newLesson.id);
+          }}
           className="w-full py-4 border-2 border-dashed border-[#6E5B6A] text-[#6E5B6A] rounded-lg hover:bg-[#6E5B6A] hover:text-white transition-colors flex items-center justify-center gap-2"
           whileHover={{ scale: 1.01 }}
           whileTap={{ scale: 0.99 }}
@@ -178,6 +196,9 @@ export function ContentTab() {
           setEditingLessonId(null);
         }}
         lessonId={editingLessonId}
+        lesson={editingLesson}
+        onSave={handleLessonSave}
+        onQuizLessonCreated={handleQuizLessonCreated}
       />
     </div>
   );

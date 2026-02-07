@@ -1,40 +1,85 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { Mail, Lock, User } from 'lucide-react';
+import { Mail, Lock, User, Loader2 } from 'lucide-react';
 import { LoginAnimatedBackground } from './LoginAnimatedBackground';
 import { useApp } from '../context/AppContext';
+import { useNavigate, Navigate } from 'react-router-dom';
+import { getRoleDashboardPath } from './ProtectedRoute';
 
-export function LoginPage({ onBackToHome }: { onBackToHome: () => void }) {
-  const { login, register } = useApp();
+export function LoginPage() {
+  const { login, register, currentUser } = useApp();
+  const navigate = useNavigate();
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    
-    if (mode === 'signin') {
-      const success = login(email, password);
-      if (!success) {
-        setError('Invalid email or password');
+
+    // Basic validation
+    if (!email || !password) {
+      setError('Please fill in all fields');
+      return;
+    }
+
+    // Email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError('Please enter a valid email address');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      if (mode === 'signin') {
+        const result = await login(email, password);
+        if (!result.success) {
+          setError(result.error || 'Invalid email or password');
+        }
+      } else {
+        // Sign-up mode validation
+        if (!name || !email || !password || !confirmPassword) {
+          setError('Please fill in all fields');
+          return;
+        }
+
+        if (name.trim().length < 2) {
+          setError('Name must be at least 2 characters');
+          return;
+        }
+
+        if (password.length < 6) {
+          setError('Password must be at least 6 characters');
+          return;
+        }
+
+        if (password !== confirmPassword) {
+          setError('Passwords do not match');
+          return;
+        }
+
+        const result = await register(name, email, password);
+        if (!result.success) {
+          setError(result.error || 'Registration failed');
+        }
       }
-      // If successful, the app will automatically show the dashboard
-    } else {
-      if (password !== confirmPassword) {
-        setError('Passwords do not match');
-        return;
-      }
-      const success = register(name, email, password);
-      if (!success) {
-        setError('Email already registered');
-      }
-      // If successful, the app will automatically show the dashboard
+    } catch {
+      setError('Something went wrong. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
+
+  // If already logged in, redirect to role dashboard
+  if (currentUser) {
+    return <Navigate to={getRoleDashboardPath(currentUser.role)} replace />;
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-8 relative">
@@ -48,10 +93,10 @@ export function LoginPage({ onBackToHome }: { onBackToHome: () => void }) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: 'easeInOut' }}
         >
-          <h1 
+          <h1
             className="text-5xl text-[#202732] mb-2 cursor-pointer"
             style={{ fontFamily: 'Caveat, cursive', fontWeight: 600 }}
-            onClick={onBackToHome}
+            onClick={() => navigate('/')}
           >
             Learn Sphere
           </h1>
@@ -72,11 +117,10 @@ export function LoginPage({ onBackToHome }: { onBackToHome: () => void }) {
             <button
               type="button"
               onClick={() => setMode('signin')}
-              className={`flex-1 py-2.5 rounded-lg transition-all duration-300 ${
-                mode === 'signin'
+              className={`flex-1 py-2.5 rounded-lg transition-all duration-300 ${mode === 'signin'
                   ? 'bg-[#6E5B6A] text-white shadow-md'
                   : 'text-[#202732] hover:bg-white/50'
-              }`}
+                }`}
               style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}
             >
               Sign In
@@ -84,11 +128,10 @@ export function LoginPage({ onBackToHome }: { onBackToHome: () => void }) {
             <button
               type="button"
               onClick={() => setMode('signup')}
-              className={`flex-1 py-2.5 rounded-lg transition-all duration-300 ${
-                mode === 'signup'
+              className={`flex-1 py-2.5 rounded-lg transition-all duration-300 ${mode === 'signup'
                   ? 'bg-[#6E5B6A] text-white shadow-md'
                   : 'text-[#202732] hover:bg-white/50'
-              }`}
+                }`}
               style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}
             >
               Sign Up
@@ -187,21 +230,34 @@ export function LoginPage({ onBackToHome }: { onBackToHome: () => void }) {
             {/* Forgot Password Link - Only for Sign In */}
             {mode === 'signin' && (
               <div className="text-right">
-                <a href="#" className="text-sm text-[#6E5B6A] hover:text-[#5a4a56] transition-colors" style={{ fontFamily: 'Inter, sans-serif' }}>
+                <button
+                  type="button"
+                  onClick={() => alert('Password reset is not yet available.')}
+                  className="text-sm text-[#6E5B6A] hover:text-[#5a4a56] transition-colors bg-transparent border-none cursor-pointer"
+                  style={{ fontFamily: 'Inter, sans-serif' }}
+                >
                   Forgot password?
-                </a>
+                </button>
               </div>
             )}
 
             {/* Submit Button */}
             <motion.button
               type="submit"
-              className="w-full bg-[#6E5B6A] text-white py-3.5 rounded-xl transition-all duration-200 hover:bg-[#5a4a56] hover:shadow-lg"
+              disabled={isLoading}
+              className="w-full bg-[#6E5B6A] text-white py-3.5 rounded-xl transition-all duration-200 hover:bg-[#5a4a56] hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-[#6E5B6A] disabled:hover:shadow-none"
               style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
+              whileHover={isLoading ? {} : { scale: 1.02 }}
+              whileTap={isLoading ? {} : { scale: 0.98 }}
             >
-              {mode === 'signin' ? 'Sign in' : 'Create account'}
+              {isLoading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  {mode === 'signin' ? 'Signing in...' : 'Creating account...'}
+                </span>
+              ) : (
+                mode === 'signin' ? 'Sign in' : 'Create account'
+              )}
             </motion.button>
 
             {/* Alternate Action Link */}

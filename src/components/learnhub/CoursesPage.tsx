@@ -3,160 +3,54 @@ import { motion } from 'motion/react';
 import { LearnHubNavigation } from './LearnHubNavigation';
 import { LearnHubSearchBar } from './LearnHubSearchBar';
 import { FilterChip } from './FilterChip';
-import { CourseCard, CourseData } from './CourseCard';
+import { CourseCard } from './CourseCard';
 import { LearnHubBackgroundAnimations } from './LearnHubBackgroundAnimations';
 import { FloatingElements } from './FloatingElements';
 import { ScrollIndicator } from './ScrollIndicator';
-import { CourseEditor } from './CourseEditor';
 import { useApp } from '../../context/AppContext';
 import { Plus } from 'lucide-react';
-import { InstructorCoursesPage } from '../instructor/InstructorCoursesPage';
-import { StudentCourseDetail } from '../student/StudentCourseDetail';
-import { LessonPlayer } from '../student/LessonPlayer';
-
-const categories = [
-  'All Courses',
-  'Web Development',
-  'Data Science',
-  'Design',
-  'Business',
-  'Marketing',
-  'Photography',
-];
-
-const coursesData: CourseData[] = [
-  {
-    id: '1',
-    title: 'React Fundamentals',
-    description: 'Master the essentials of React including components, hooks, state management, and modern React patterns for building dynamic web applications.',
-    image: 'https://images.unsplash.com/photo-1557324232-b8917d3c3dcb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
-    tags: ['React', 'JavaScript', 'Frontend'],
-    rating: 4.8,
-    reviewCount: 1234,
-    category: 'Web Development',
-  },
-  {
-    id: '2',
-    title: 'Python for Data Science',
-    description: 'Learn Python programming and data analysis with pandas, numpy, and visualization libraries to extract insights from complex datasets.',
-    image: 'https://images.unsplash.com/photo-1660616246653-e2c57d1077b9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
-    tags: ['Python', 'Data Analysis', 'ML'],
-    rating: 4.9,
-    reviewCount: 987,
-    category: 'Data Science',
-  },
-  {
-    id: '3',
-    title: 'UI/UX Design Masterclass',
-    description: 'Design beautiful and intuitive user interfaces with Figma. Learn design systems, prototyping, and user research methodologies.',
-    image: 'https://images.unsplash.com/photo-1618761714954-0b8cd0026356?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
-    tags: ['Figma', 'UI/UX', 'Design Systems'],
-    rating: 4.7,
-    reviewCount: 756,
-    category: 'Design',
-  },
-  {
-    id: '4',
-    title: 'Digital Marketing Strategy',
-    description: 'Build effective marketing campaigns across social media, email, and content marketing to grow your brand and reach your target audience.',
-    image: 'https://images.unsplash.com/photo-1547621008-d6d6d2e28e81?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
-    tags: ['SEO', 'Social Media', 'Content'],
-    rating: 4.6,
-    reviewCount: 543,
-    category: 'Marketing',
-  },
-  {
-    id: '5',
-    title: 'Business Analytics',
-    description: 'Transform data into actionable business insights using analytics tools, statistical methods, and data-driven decision making frameworks.',
-    image: 'https://images.unsplash.com/photo-1737703638422-2cfa152cdcb7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
-    tags: ['Analytics', 'Excel', 'Data Viz'],
-    rating: 4.5,
-    reviewCount: 432,
-    category: 'Business',
-  },
-  {
-    id: '6',
-    title: 'Photography Basics',
-    description: 'Master camera settings, composition techniques, lighting fundamentals, and post-processing to capture stunning professional photographs.',
-    image: 'https://images.unsplash.com/photo-1714196543225-accf8ea205a8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
-    tags: ['Camera', 'Composition', 'Editing'],
-    rating: 4.8,
-    reviewCount: 612,
-    category: 'Photography',
-  },
-];
+import { useNavigate } from 'react-router-dom';
 
 export function CoursesPage() {
   // ALL HOOKS MUST BE DECLARED FIRST - React Rules of Hooks
   const [activeCategory, setActiveCategory] = useState('All Courses');
   const [searchQuery, setSearchQuery] = useState('');
-  const [showEditor, setShowEditor] = useState(false);
-  const [showInstructorDashboard, setShowInstructorDashboard] = useState(false);
-  const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
-  const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
-  const { currentUser } = useApp();
+  const { currentUser, courses } = useApp();
+  const navigate = useNavigate();
 
   const isInstructor = currentUser?.role === 'instructor';
 
+  // Derive published courses from the stable `courses` array
+  const publishedCourses = useMemo(() => courses.filter((c) => c.published), [courses]);
+
+  // Build dynamic category list from actual course data
+  const categories = useMemo(() => {
+    const uniqueCats = Array.from(new Set(publishedCourses.map((c) => c.category)));
+    uniqueCats.sort();
+    return ['All Courses', ...uniqueCats];
+  }, [publishedCourses]);
+
   // Filter courses based on category and search query
   const filteredCourses = useMemo(() => {
-    return coursesData.filter((course) => {
+    const q = searchQuery.trim().toLowerCase();
+
+    return publishedCourses.filter((course) => {
+      // Category filter (case-insensitive)
       const matchesCategory =
-        activeCategory === 'All Courses' || course.category === activeCategory;
+        activeCategory === 'All Courses' ||
+        course.category.toLowerCase() === activeCategory.toLowerCase();
+
+      // Search filter — match title, category, description, or tags
       const matchesSearch =
-        searchQuery === '' ||
-        course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        course.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        course.tags.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase()));
+        q === '' ||
+        course.title.toLowerCase().includes(q) ||
+        course.category.toLowerCase().includes(q) ||
+        course.description.toLowerCase().includes(q) ||
+        course.tags.some((tag) => tag.toLowerCase().includes(q));
 
       return matchesCategory && matchesSearch;
     });
-  }, [activeCategory, searchQuery]);
-
-  // === CONDITIONAL RENDERING (AFTER ALL HOOKS) ===
-
-  // If showing lesson player, render it
-  if (selectedLessonId) {
-    return (
-      <LessonPlayer
-        lessonId={selectedLessonId}
-        onBack={() => setSelectedLessonId(null)}
-        onComplete={() => {
-          console.log('Lesson completed');
-        }}
-        onNext={() => console.log('Next lesson')}
-        onPrevious={() => console.log('Previous lesson')}
-        isCourseCompleted={false}
-        onViewCourses={() => {
-          setSelectedLessonId(null);
-          setSelectedCourseId(null);
-        }}
-        onLeaveReview={() => console.log('Leave review')}
-      />
-    );
-  }
-
-  // If showing course detail, render it
-  if (selectedCourseId) {
-    return (
-      <StudentCourseDetail
-        courseId={selectedCourseId}
-        onBack={() => setSelectedCourseId(null)}
-        onLessonClick={(lessonId) => setSelectedLessonId(lessonId)}
-      />
-    );
-  }
-
-  // If showing instructor dashboard, render it
-  if (showInstructorDashboard) {
-    return <InstructorCoursesPage />;
-  }
-
-  // If showing editor, render editor
-  if (showEditor) {
-    return <CourseEditor onBack={() => setShowEditor(false)} />;
-  }
+  }, [activeCategory, searchQuery, publishedCourses]);
 
   // === MAIN COURSES PAGE RENDER ===
 
@@ -315,7 +209,7 @@ export function CoursesPage() {
               whileHover={{ scale: 1.05, y: -3 }}
               whileTap={{ scale: 0.98 }}
               style={{ fontFamily: 'Inter, sans-serif' }}
-              onClick={() => setShowInstructorDashboard(true)}
+              onClick={() => navigate('/instructor')}
             >
               {/* Button shine effect */}
               <motion.div
@@ -353,7 +247,7 @@ export function CoursesPage() {
               key={course.id}
               course={course}
               index={index}
-              onClick={() => setSelectedCourseId(course.id)}
+              onClick={() => navigate(`/course/${course.id}`)}
             />
           ))}
         </div>

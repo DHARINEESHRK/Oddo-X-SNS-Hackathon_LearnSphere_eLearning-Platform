@@ -1,23 +1,34 @@
 import React from 'react';
 import { motion } from 'motion/react';
+import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { BookOpen, CheckCircle, Clock, Award } from 'lucide-react';
+import { EmptyState } from '../EmptyState';
 
 export function MyCourses() {
   const { currentUser, getUserEnrollments, getCourseById } = useApp();
+  const navigate = useNavigate();
 
   if (!currentUser) return null;
+
+  const handleContinueLearning = (courseId: string, completedLessonIds: string[]) => {
+    const course = getCourseById(courseId);
+    if (!course) return;
+
+    // Find the first incomplete lesson
+    const nextLesson = course.lessons.find(l => !completedLessonIds.includes(l.id));
+    if (nextLesson) {
+      navigate(`/player/${courseId}/${nextLesson.id}`);
+    } else {
+      // All lessons done — go to course detail
+      navigate(`/course/${courseId}`);
+    }
+  };
 
   const userEnrollments = getUserEnrollments(currentUser.id);
 
   if (userEnrollments.length === 0) {
-    return (
-      <div className="text-center py-12">
-        <BookOpen className="w-16 h-16 text-[#9AACB6] mx-auto mb-4" />
-        <h3 className="text-xl text-[#202732] mb-2">No enrolled courses yet</h3>
-        <p className="text-[#9AACB6]">Start learning by enrolling in a course from the catalog!</p>
-      </div>
-    );
+    return <EmptyState variant="enrollments" />;
   }
 
   return (
@@ -113,6 +124,7 @@ export function MyCourses() {
                 {/* Continue Button */}
                 <div className="mt-4">
                   <motion.button
+                    onClick={() => handleContinueLearning(course.id, enrollment.completedLessons)}
                     className="bg-[#6E5B6A] text-white px-6 py-2 rounded-lg font-semibold hover:bg-[#5a4a56] transition-colors"
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}

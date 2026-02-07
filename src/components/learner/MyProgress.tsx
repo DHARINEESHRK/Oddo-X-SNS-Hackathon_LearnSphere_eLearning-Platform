@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { useApp } from '../../context/AppContext';
 import { Award, TrendingUp, Target, Trophy } from 'lucide-react';
+import { EmptyState } from '../EmptyState';
 
 export function MyProgress() {
   const { currentUser, getUserEnrollments, getCourseById } = useApp();
@@ -85,9 +86,11 @@ export function MyProgress() {
         <h3 className="text-xl font-semibold text-[#202732] mb-4">Learning Activity</h3>
         
         {userEnrollments.length === 0 ? (
-          <p className="text-[#9AACB6] text-center py-8">
-            No learning activity yet. Start a course to see your progress!
-          </p>
+          <EmptyState
+            variant="enrollments"
+            title="No learning activity yet"
+            description="Start a course to see your progress!"
+          />
         ) : (
           <div className="space-y-4">
             {userEnrollments.map((enrollment) => {

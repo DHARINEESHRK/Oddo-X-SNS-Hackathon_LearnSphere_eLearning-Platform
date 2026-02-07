@@ -5,12 +5,19 @@ import { BookOpen, Award, TrendingUp, LogOut } from 'lucide-react';
 import { CourseCatalog } from './CourseCatalog';
 import { MyCourses } from './MyCourses';
 import { MyProgress } from './MyProgress';
+import { useNavigate } from 'react-router-dom';
 
 type TabType = 'catalog' | 'my-courses' | 'progress';
 
 export function LearnerDashboard() {
   const { currentUser, logout } = useApp();
   const [activeTab, setActiveTab] = useState<TabType>('catalog');
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
 
   if (!currentUser) return null;
 
@@ -59,7 +66,7 @@ export function LearnerDashboard() {
                   <img src={currentUser.avatar} alt={currentUser.name} className="w-10 h-10 rounded-full" />
                 )}
                 <button
-                  onClick={logout}
+                  onClick={handleLogout}
                   className="p-2 hover:bg-[#F1F2F4] rounded-lg transition-colors"
                   title="Logout"
                 >

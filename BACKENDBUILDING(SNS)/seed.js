@@ -1,0 +1,313 @@
+/**
+ * Seed script — inserts the 10 starter courses into MongoDB.
+ * Run once:  node seed.js
+ */
+const mongoose = require("mongoose");
+const dotenv = require("dotenv");
+dotenv.config();
+
+const Course = require("./model/course");
+
+const courses = [
+  {
+    title: "React Fundamentals",
+    description:
+      "Master the essentials of React including components, hooks, state management, and modern React patterns for building dynamic web applications.",
+    thumbnail:
+      "https://images.unsplash.com/photo-1557324232-b8917d3c3dcb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+    instructorId: "instructor-1",
+    instructorName: "Sarah Johnson",
+    category: "Web Development",
+    tags: ["React", "JavaScript", "Frontend"],
+    level: "beginner",
+    duration: "6 hours",
+    price: 49.99,
+    rating: 4.8,
+    reviewsCount: 1234,
+    studentsCount: 1250,
+    published: true,
+    allowGuests: true,
+    lessons: [
+      { title: "Introduction to React", description: "Learn what React is, its core philosophy, and how to set up your first project.", content: "React is a JavaScript library for building user interfaces...", videoUrl: "https://example.com/video1", duration: "12 min", order: 1 },
+      { title: "JSX Fundamentals", description: "Understand JSX syntax and how it compiles to JavaScript.", content: "JSX is a syntax extension for JavaScript...", videoUrl: "https://example.com/video2", duration: "18 min", order: 2 },
+      { title: "Components Deep Dive", description: "Learn about functional and class components, composition patterns, and best practices.", content: "Components are the building blocks of React applications...", duration: "15 min", order: 3 },
+      { title: "Quiz: React Basics", description: "Test your understanding of React fundamentals.", content: "Quiz covering the first three lessons...", duration: "10 min", order: 4 },
+      { title: "Props and State", description: "Master data flow with props and local state management.", content: "Props allow you to pass data between components...", videoUrl: "https://example.com/video5", duration: "22 min", order: 5 },
+      { title: "Event Handling", description: "Handle user interactions with React event system.", content: "React events are named using camelCase...", videoUrl: "https://example.com/video6", duration: "16 min", order: 6 },
+      { title: "Lifecycle Methods", description: "Understand component lifecycle and when to use lifecycle methods.", content: "React components go through a lifecycle...", duration: "20 min", order: 7 },
+      { title: "Hooks Introduction", description: "Learn about React Hooks and how they simplify state and side effects.", content: "Hooks let you use state and other features without classes...", videoUrl: "https://example.com/video8", duration: "25 min", order: 8 },
+      { title: "useState and useEffect", description: "Master the two most fundamental hooks in React.", content: "useState allows you to add state to functional components...", videoUrl: "https://example.com/video9", duration: "30 min", order: 9 },
+      { title: "Custom Hooks", description: "Create reusable logic with custom hooks.", content: "Custom hooks allow you to extract component logic into reusable functions...", videoUrl: "https://example.com/video10", duration: "20 min", order: 10 },
+      { title: "Context API", description: "Share state across components without prop drilling.", content: "The Context API provides a way to pass data through the component tree...", duration: "18 min", order: 11 },
+      { title: "Final Quiz", description: "Comprehensive quiz covering all React fundamentals.", content: "Final assessment for the React Fundamentals course...", duration: "15 min", order: 12 },
+    ],
+    quizzes: [
+      {
+        title: "HTML Basics Quiz",
+        description: "Test your knowledge of React basics",
+        passingScore: 70,
+        order: 1,
+        questions: [
+          { question: "What does JSX stand for?", options: ["JavaScript XML", "Java Syntax Extension", "JSON XML", "JavaScript Extension"], correctAnswer: 0, points: 10 },
+          { question: "Which hook is used for state in functional components?", options: ["useEffect", "useContext", "useState", "useReducer"], correctAnswer: 2, points: 10 },
+        ],
+      },
+    ],
+  },
+  {
+    title: "Python for Data Science",
+    description: "Learn Python programming and data analysis with pandas, numpy, and visualization libraries to extract insights from complex datasets.",
+    thumbnail: "https://images.unsplash.com/photo-1660616246653-e2c57d1077b9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+    instructorId: "instructor-2",
+    instructorName: "Michael Chen",
+    category: "Data Science",
+    tags: ["Python", "Data Analysis", "ML"],
+    level: "intermediate",
+    duration: "10 hours",
+    price: 79.99,
+    rating: 4.9,
+    reviewsCount: 987,
+    studentsCount: 520,
+    published: true,
+    allowGuests: false,
+    lessons: [
+      { title: "Python Basics Refresher", description: "Quick refresher on Python fundamentals for data science.", content: "Python is a versatile programming language...", videoUrl: "https://example.com/video-py1", duration: "30 min", order: 1 },
+      { title: "NumPy Essentials", description: "Learn numerical computing with NumPy arrays.", content: "NumPy is the fundamental package for scientific computing...", videoUrl: "https://example.com/video-py2", duration: "45 min", order: 2 },
+      { title: "Pandas for Data Analysis", description: "Master data manipulation with DataFrames.", content: "Pandas provides data structures for efficiently storing data...", videoUrl: "https://example.com/video-py3", duration: "50 min", order: 3 },
+      { title: "Data Visualization with Matplotlib", description: "Create compelling charts and graphs.", content: "Matplotlib is a comprehensive library for creating visualizations...", videoUrl: "https://example.com/video-py4", duration: "40 min", order: 4 },
+      { title: "Introduction to Machine Learning", description: "Understand ML concepts and scikit-learn basics.", content: "Machine learning is a subset of artificial intelligence...", videoUrl: "https://example.com/video-py5", duration: "55 min", order: 5 },
+    ],
+    quizzes: [],
+  },
+  {
+    title: "UI/UX Design Masterclass",
+    description: "Design beautiful and intuitive user interfaces with Figma. Learn design systems, prototyping, and user research methodologies.",
+    thumbnail: "https://images.unsplash.com/photo-1618761714954-0b8cd0026356?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+    instructorId: "instructor-1",
+    instructorName: "Sarah Johnson",
+    category: "Design",
+    tags: ["Figma", "UI/UX", "Design Systems"],
+    level: "beginner",
+    duration: "5 hours",
+    price: 39.99,
+    rating: 4.7,
+    reviewsCount: 756,
+    studentsCount: 890,
+    published: true,
+    allowGuests: true,
+    lessons: [
+      { title: "Design Thinking", description: "Introduction to design thinking methodology.", content: "Design thinking is a human-centered approach to innovation...", videoUrl: "https://example.com/video-ui1", duration: "35 min", order: 1 },
+      { title: "Figma Basics", description: "Get started with Figma interface and tools.", content: "Figma is a cloud-based design tool...", videoUrl: "https://example.com/video-ui2", duration: "40 min", order: 2 },
+      { title: "Color Theory & Typography", description: "Master color palettes and font selection for digital products.", content: "Color theory is the science of how colors interact...", videoUrl: "https://example.com/video-ui3", duration: "30 min", order: 3 },
+      { title: "Wireframing & Prototyping", description: "Create wireframes and interactive prototypes.", content: "Wireframing is the process of creating a blueprint...", videoUrl: "https://example.com/video-ui4", duration: "45 min", order: 4 },
+      { title: "User Research Methods", description: "Learn how to conduct user research and usability testing.", content: "User research helps you understand your audience...", videoUrl: "https://example.com/video-ui5", duration: "35 min", order: 5 },
+    ],
+    quizzes: [],
+  },
+  {
+    title: "Digital Marketing Strategy",
+    description: "Build effective marketing campaigns across social media, email, and content marketing to grow your brand and reach your target audience.",
+    thumbnail: "https://images.unsplash.com/photo-1547621008-d6d6d2e28e81?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+    instructorId: "instructor-2",
+    instructorName: "Michael Chen",
+    category: "Marketing",
+    tags: ["SEO", "Social Media", "Content"],
+    level: "beginner",
+    duration: "4 hours",
+    price: 44.99,
+    rating: 4.6,
+    reviewsCount: 543,
+    studentsCount: 680,
+    published: true,
+    allowGuests: true,
+    lessons: [
+      { title: "Marketing Fundamentals", description: "Core concepts of digital marketing.", content: "Digital marketing encompasses all marketing efforts...", videoUrl: "https://example.com/video-dm1", duration: "25 min", order: 1 },
+      { title: "SEO Essentials", description: "Optimize your content for search engines.", content: "SEO is the practice of increasing website traffic...", videoUrl: "https://example.com/video-dm2", duration: "35 min", order: 2 },
+      { title: "Social Media Marketing", description: "Build a following and engage your audience on social platforms.", content: "Social media marketing involves creating content...", videoUrl: "https://example.com/video-dm3", duration: "40 min", order: 3 },
+      { title: "Email Marketing Campaigns", description: "Design effective email campaigns that convert.", content: "Email marketing is one of the most effective channels...", videoUrl: "https://example.com/video-dm4", duration: "30 min", order: 4 },
+    ],
+    quizzes: [],
+  },
+  {
+    title: "Business Analytics",
+    description: "Transform data into actionable business insights using analytics tools, statistical methods, and data-driven decision making frameworks.",
+    thumbnail: "https://images.unsplash.com/photo-1737703638422-2cfa152cdcb7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+    instructorId: "instructor-1",
+    instructorName: "Sarah Johnson",
+    category: "Business",
+    tags: ["Analytics", "Excel", "Data Viz"],
+    level: "intermediate",
+    duration: "7 hours",
+    price: 59.99,
+    rating: 4.5,
+    reviewsCount: 432,
+    studentsCount: 410,
+    published: true,
+    allowGuests: false,
+    lessons: [
+      { title: "Introduction to Business Analytics", description: "What is business analytics and why it matters.", content: "Business analytics is the practice of iterative exploration...", videoUrl: "https://example.com/video-ba1", duration: "30 min", order: 1 },
+      { title: "Excel for Data Analysis", description: "Advanced Excel techniques for business data.", content: "Excel remains one of the most powerful tools...", videoUrl: "https://example.com/video-ba2", duration: "45 min", order: 2 },
+      { title: "Statistical Methods", description: "Apply statistical methods to business problems.", content: "Statistics provides the tools to make sense of data...", videoUrl: "https://example.com/video-ba3", duration: "50 min", order: 3 },
+      { title: "Data Visualization Best Practices", description: "Create impactful charts and dashboards.", content: "Good data visualization tells a story...", videoUrl: "https://example.com/video-ba4", duration: "35 min", order: 4 },
+    ],
+    quizzes: [],
+  },
+  {
+    title: "Photography Basics",
+    description: "Master camera settings, composition techniques, lighting fundamentals, and post-processing to capture stunning professional photographs.",
+    thumbnail: "https://images.unsplash.com/photo-1714196543225-accf8ea205a8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+    instructorId: "instructor-2",
+    instructorName: "Michael Chen",
+    category: "Photography",
+    tags: ["Camera", "Composition", "Editing"],
+    level: "beginner",
+    duration: "4 hours",
+    price: 34.99,
+    rating: 4.8,
+    reviewsCount: 612,
+    studentsCount: 720,
+    published: true,
+    allowGuests: true,
+    lessons: [
+      { title: "Camera Settings Explained", description: "Understand aperture, shutter speed, and ISO.", content: "The exposure triangle consists of aperture, shutter speed, and ISO...", videoUrl: "https://example.com/video-ph1", duration: "30 min", order: 1 },
+      { title: "Composition Techniques", description: "Rule of thirds, leading lines, and framing.", content: "Composition is the arrangement of visual elements...", videoUrl: "https://example.com/video-ph2", duration: "25 min", order: 2 },
+      { title: "Lighting Fundamentals", description: "Natural and artificial lighting techniques.", content: "Light is the most important element in photography...", videoUrl: "https://example.com/video-ph3", duration: "35 min", order: 3 },
+      { title: "Post-Processing Basics", description: "Edit photos using Lightroom and Photoshop.", content: "Post-processing is where your photos come to life...", videoUrl: "https://example.com/video-ph4", duration: "40 min", order: 4 },
+    ],
+    quizzes: [],
+  },
+  {
+    title: "Advanced TypeScript",
+    description: "Master TypeScript generics, utility types, declaration files, and advanced patterns for writing robust, type-safe applications.",
+    thumbnail: "https://images.unsplash.com/photo-1569693799105-4eb645d89aea?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+    instructorId: "instructor-1",
+    instructorName: "Sarah Johnson",
+    category: "Web Development",
+    tags: ["TypeScript", "Programming", "Advanced"],
+    level: "advanced",
+    duration: "8 hours",
+    price: 89.99,
+    rating: 4.9,
+    reviewsCount: 156,
+    studentsCount: 320,
+    published: false,
+    allowGuests: false,
+    lessons: [
+      { title: "Generics in Depth", description: "Master TypeScript generics with real-world examples.", content: "Generics allow you to create reusable components...", videoUrl: "https://example.com/video-ts1", duration: "40 min", order: 1 },
+      { title: "Utility Types", description: "Leverage built-in utility types like Partial, Pick, and Omit.", content: "TypeScript provides utility types to facilitate common transformations...", videoUrl: "https://example.com/video-ts2", duration: "35 min", order: 2 },
+      { title: "Conditional Types", description: "Create dynamic types based on conditions.", content: "Conditional types let you express non-uniform type mappings...", videoUrl: "https://example.com/video-ts3", duration: "45 min", order: 3 },
+      { title: "Declaration Files", description: "Write and consume .d.ts files for external libraries.", content: "Declaration files describe the types of existing JavaScript code...", videoUrl: "https://example.com/video-ts4", duration: "30 min", order: 4 },
+      { title: "Advanced Patterns", description: "Builder, fluent API, and branded types patterns.", content: "Advanced TypeScript patterns help you write safer code...", videoUrl: "https://example.com/video-ts5", duration: "50 min", order: 5 },
+      { title: "Template Literal Types", description: "String manipulation at the type level.", content: "Template literal types build on string literal types...", videoUrl: "https://example.com/video-ts6", duration: "35 min", order: 6 },
+      { title: "Type-safe APIs", description: "Building end-to-end type-safe REST and GraphQL APIs.", content: "Type safety across the stack prevents runtime errors...", videoUrl: "https://example.com/video-ts7", duration: "45 min", order: 7 },
+      { title: "Performance & Best Practices", description: "Optimize TypeScript compilation and project structure.", content: "Large TypeScript projects require careful optimization...", videoUrl: "https://example.com/video-ts8", duration: "30 min", order: 8 },
+    ],
+    quizzes: [],
+  },
+  {
+    title: "Mobile App Development with Flutter",
+    description: "Build cross-platform mobile applications with Flutter and Dart. Learn widgets, state management, and platform integration.",
+    thumbnail: "https://images.unsplash.com/photo-1633250391894-397930e3f5f2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+    instructorId: "instructor-2",
+    instructorName: "Michael Chen",
+    category: "Web Development",
+    tags: ["Mobile", "Flutter", "Cross-platform"],
+    level: "intermediate",
+    duration: "9 hours",
+    price: 74.99,
+    rating: 4.6,
+    reviewsCount: 289,
+    studentsCount: 450,
+    published: false,
+    allowGuests: false,
+    lessons: [
+      { title: "Dart Language Basics", description: "Learn the Dart programming language.", content: "Dart is a client-optimized language for fast apps...", videoUrl: "https://example.com/video-fl1", duration: "40 min", order: 1 },
+      { title: "Flutter Widget Tree", description: "Understand the widget tree and rendering pipeline.", content: "Everything in Flutter is a widget...", videoUrl: "https://example.com/video-fl2", duration: "45 min", order: 2 },
+      { title: "State Management", description: "Provider, Riverpod, and Bloc patterns.", content: "State management is crucial for Flutter apps...", videoUrl: "https://example.com/video-fl3", duration: "50 min", order: 3 },
+    ],
+    quizzes: [],
+  },
+  {
+    title: "Complete React Development Bootcamp",
+    description: "Comprehensive bootcamp covering React, Redux, testing, deployment, and real-world project development from scratch to production.",
+    thumbnail: "https://images.unsplash.com/photo-1653387137517-fbc54d488ed8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+    instructorId: "instructor-1",
+    instructorName: "Sarah Johnson",
+    category: "Web Development",
+    tags: ["Web Development", "React", "JavaScript"],
+    level: "intermediate",
+    duration: "12 hours",
+    price: 99.99,
+    rating: 4.7,
+    reviewsCount: 345,
+    studentsCount: 980,
+    published: true,
+    allowGuests: false,
+    lessons: [
+      { title: "Project Setup & Tooling", description: "Set up a modern React development environment.", content: "We will use Vite, ESLint, and Prettier...", videoUrl: "https://example.com/video-rb1", duration: "20 min", order: 1 },
+      { title: "Component Architecture", description: "Design scalable component hierarchies.", content: "Good component architecture is key to maintainable apps...", videoUrl: "https://example.com/video-rb2", duration: "35 min", order: 2 },
+      { title: "Redux Toolkit", description: "Modern state management with Redux Toolkit.", content: "Redux Toolkit simplifies Redux development...", videoUrl: "https://example.com/video-rb3", duration: "45 min", order: 3 },
+      { title: "React Router v6", description: "Client-side routing with React Router.", content: "React Router enables navigation in single-page apps...", videoUrl: "https://example.com/video-rb4", duration: "30 min", order: 4 },
+      { title: "API Integration", description: "Fetch data from REST and GraphQL APIs.", content: "Modern apps consume data from various APIs...", videoUrl: "https://example.com/video-rb5", duration: "40 min", order: 5 },
+      { title: "Testing with Jest & RTL", description: "Write unit and integration tests for React apps.", content: "Testing ensures your code works as expected...", videoUrl: "https://example.com/video-rb6", duration: "45 min", order: 6 },
+      { title: "Performance Optimization", description: "Lazy loading, memoization, and bundle analysis.", content: "Performance optimization is critical for user experience...", videoUrl: "https://example.com/video-rb7", duration: "35 min", order: 7 },
+      { title: "Deployment & CI/CD", description: "Deploy React apps to Vercel, Netlify, and AWS.", content: "Continuous deployment ensures fast delivery...", videoUrl: "https://example.com/video-rb8", duration: "30 min", order: 8 },
+    ],
+    quizzes: [],
+  },
+  {
+    title: "Advanced JavaScript Concepts",
+    description: "Deep dive into closures, prototypes, async patterns, event loop, and the JavaScript engine for experienced developers.",
+    thumbnail: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400",
+    instructorId: "instructor-2",
+    instructorName: "Michael Chen",
+    category: "Web Development",
+    tags: ["JavaScript", "Web Development", "Advanced"],
+    level: "advanced",
+    duration: "6 hours",
+    price: 69.99,
+    rating: 4.8,
+    reviewsCount: 198,
+    studentsCount: 560,
+    published: true,
+    allowGuests: false,
+    lessons: [
+      { title: "Execution Context & Call Stack", description: "How JavaScript executes code behind the scenes.", content: "The execution context is the environment in which code runs...", videoUrl: "https://example.com/video-js1", duration: "35 min", order: 1 },
+      { title: "Closures & Scope", description: "Master lexical scope and closures.", content: "A closure is a function that remembers its lexical scope...", videoUrl: "https://example.com/video-js2", duration: "40 min", order: 2 },
+      { title: "Prototypal Inheritance", description: "Understand JavaScript object model and prototype chain.", content: "JavaScript uses prototypal inheritance...", videoUrl: "https://example.com/video-js3", duration: "45 min", order: 3 },
+      { title: "Async Patterns", description: "Callbacks, promises, async/await, and generators.", content: "JavaScript is single-threaded but supports async operations...", videoUrl: "https://example.com/video-js4", duration: "50 min", order: 4 },
+      { title: "Event Loop Deep Dive", description: "Microtasks, macrotasks, and the browser event loop.", content: "The event loop is what allows JavaScript to perform non-blocking I/O...", videoUrl: "https://example.com/video-js5", duration: "35 min", order: 5 },
+      { title: "Memory Management", description: "Garbage collection, memory leaks, and optimization.", content: "Understanding memory management helps avoid performance issues...", videoUrl: "https://example.com/video-js6", duration: "30 min", order: 6 },
+    ],
+    quizzes: [],
+  },
+];
+
+async function seed() {
+  try {
+    await mongoose.connect(process.env.DB1);
+    console.log("Connected to MongoDB");
+
+    // Clear existing courses
+    await Course.deleteMany({});
+    console.log("Cleared existing courses");
+
+    // Insert all courses
+    const inserted = await Course.insertMany(courses);
+    console.log(`Seeded ${inserted.length} courses into MongoDB`);
+
+    // List them
+    inserted.forEach((c) => {
+      console.log(`  - ${c.title}  (id: ${c._id})`);
+    });
+
+    await mongoose.disconnect();
+    console.log("Done!");
+    process.exit(0);
+  } catch (err) {
+    console.error("Seed failed:", err);
+    process.exit(1);
+  }
+}
+
+seed();

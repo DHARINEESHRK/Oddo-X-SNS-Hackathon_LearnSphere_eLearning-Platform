@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion } from 'motion/react';
 import {
-  ArrowLeft,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
@@ -11,63 +10,146 @@ import {
   Maximize,
   Settings,
   Star,
+  HelpCircle,
 } from 'lucide-react';
 import { PointsBadgePopup } from './PointsBadgePopup';
+import { BackButton } from '../ui/BackButton';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useApp } from '../../context/AppContext';
 
 interface LessonPlayerProps {
-  lessonId: string;
-  onBack: () => void;
-  onComplete: () => void;
-  onNext?: () => void;
-  onPrevious?: () => void;
-  isCourseCompleted?: boolean;
-  onViewCourses?: () => void;
-  onLeaveReview?: () => void;
+  lessonId?: string;
+  onBack?: () => void;
 }
 
-export function LessonPlayer({
-  lessonId,
-  onBack,
-  onComplete,
-  onNext,
-  onPrevious,
-  isCourseCompleted = false,
-  onViewCourses,
-  onLeaveReview,
-}: LessonPlayerProps) {
-  const [isCompleted, setIsCompleted] = useState(false);
-  const [showCompletionState, setShowCompletionState] = useState(isCourseCompleted);
-  const [showPointsPopup, setShowPointsPopup] = useState(false);
+export function LessonPlayer(props: LessonPlayerProps) {
+  const params = useParams();
+  const navigate = useNavigate();
+  const { getCourseById, completeLesson, getEnrollmentForCourse, currentUser } = useApp();
+  const lessonId = props.lessonId || params.lessonId || '';
+  const courseId = params.courseId || '';
+  const onBack = props.onBack || (() => navigate(courseId ? `/course/${courseId}` : '/courses'));
 
-  // ESC key handler to close lesson player (unless popup is open)
+  const [isCompleted, setIsCompleted] = useState(false);
+  const [showCompletionState, setShowCompletionState] = useState(false);
+  const [showPointsPopup, setShowPointsPopup] = useState(false);
+  const [completionResult, setCompletionResult] = useState<{
+    pointsEarned: number;
+    totalPoints: number;
+    newBadge?: { name: string; icon: string };
+    isCourseCompleted: boolean;
+  } | null>(null);
+
+  // Pull course & lesson data from context
+  const contextCourse = getCourseById(courseId);
+  const enrollment = getEnrollmentForCourse(courseId);
+
+  const sortedLessons = useMemo(() => {
+    if (!contextCourse) return [];
+    return [...contextCourse.lessons].sort((a, b) => a.order - b.order);
+  }, [contextCourse]);
+
+  const currentIndex = useMemo(() => {
+    return sortedLessons.findIndex(l => l.id === lessonId);
+  }, [sortedLessons, lessonId]);
+
+  const contextLesson = currentIndex >= 0 ? sortedLessons[currentIndex] : undefined;
+  const prevLesson = currentIndex > 0 ? sortedLessons[currentIndex - 1] : undefined;
+  const nextLesson = currentIndex < sortedLessons.length - 1 ? sortedLessons[currentIndex + 1] : undefined;
+  const isLastLesson = currentIndex === sortedLessons.length - 1;
+
+  // Check if a quiz exists for this course
+  const courseQuiz = contextCourse?.quizzes?.[0];
+
+  // Track completed lessons count
+  const completedCount = enrollment?.completedLessons?.length ?? 0;
+  const totalCount = sortedLessons.length;
+
+  // Check if this lesson was already completed
+  useEffect(() => {
+    if (enrollment?.completedLessons?.includes(lessonId)) {
+      setIsCompleted(true);
+    } else {
+      setIsCompleted(false);
+    }
+    setShowCompletionState(false);
+    setCompletionResult(null);
+  }, [lessonId, enrollment]);
+
+  const lesson = {
+    id: lessonId,
+    title: contextLesson?.title || 'Lesson Not Found',
+    courseTitle: contextCourse?.title || 'Course',
+    type: contextLesson?.videoUrl ? 'video' : 'pdf',
+    videoUrl: contextLesson?.videoUrl || '',
+    duration: contextLesson?.duration || '—',
+    description: contextLesson?.description || contextLesson?.content || '',
+  };
+
+  // ESC key handler
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && !showPointsPopup) {
         onBack();
       }
     };
-
     window.addEventListener('keydown', handleEsc);
     return () => window.removeEventListener('keydown', handleEsc);
   }, [onBack, showPointsPopup]);
 
-  // Sample lesson data
-  const lesson = {
-    id: lessonId,
-    title: 'Introduction to React',
-    courseTitle: 'React Fundamentals',
-    type: 'video',
-    videoUrl: 'https://www.example.com/video.mp4', // Placeholder
-    pdfUrl: null,
-    duration: '12:34',
-    description:
-      'In this lesson, we will cover the basics of React including what it is, why it\'s popular, and how to set up your first React project.',
-  };
+  const handleMarkComplete = useCallback(() => {
+    if (isCompleted) return;
 
-  const handleMarkComplete = () => {
+    const result = completeLesson(courseId, lessonId);
+    if (!result) return;
+
     setIsCompleted(true);
-    onComplete();
-  };
+    setCompletionResult(result);
+
+    // Show points popup
+    if (result.pointsEarned > 0) {
+      setShowPointsPopup(true);
+    }
+
+    // If last lesson and course completed, show completion state after popup
+    if (result.isCourseCompleted) {
+      if (result.pointsEarned === 0) {
+        setShowCompletionState(true);
+      }
+      // Otherwise completion state will show when popup closes
+    }
+  }, [isCompleted, completeLesson, courseId, lessonId]);
+
+  const handleGoToNext = useCallback(() => {
+    if (nextLesson) {
+      navigate(`/player/${courseId}/${nextLesson.id}`);
+    }
+  }, [nextLesson, navigate, courseId]);
+
+  const handleGoToPrevious = useCallback(() => {
+    if (prevLesson) {
+      navigate(`/player/${courseId}/${prevLesson.id}`);
+    }
+  }, [prevLesson, navigate, courseId]);
+
+  const handlePointsPopupContinue = useCallback(() => {
+    setShowPointsPopup(false);
+    if (completionResult?.isCourseCompleted) {
+      // Redirect to certificate page
+      navigate(`/certificate/${courseId}`);
+    } else if (nextLesson) {
+      handleGoToNext();
+    }
+  }, [completionResult, nextLesson, handleGoToNext, navigate, courseId]);
+
+  const handlePointsPopupBack = useCallback(() => {
+    setShowPointsPopup(false);
+    if (completionResult?.isCourseCompleted) {
+      setShowCompletionState(true);
+    } else {
+      onBack();
+    }
+  }, [completionResult, onBack]);
 
   return (
     <div className="min-h-screen bg-[#202732] text-white">
@@ -75,16 +157,7 @@ export function LessonPlayer({
       <div className="bg-[#1a1f2e] border-b border-gray-800 px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           {/* Back Button */}
-          <motion.button
-            onClick={onBack}
-            className="flex items-center gap-2 text-gray-300 hover:text-white transition-colors"
-            whileHover={{ scale: 1.05, x: -5 }}
-            whileTap={{ scale: 0.98 }}
-            style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}
-          >
-            <ArrowLeft className="w-5 h-5" />
-            Back to Course
-          </motion.button>
+          <BackButton onClick={onBack} label="Back to Course" />
 
           {/* Course Title */}
           <div className="text-center">
@@ -227,7 +300,7 @@ export function LessonPlayer({
                   className="text-sm text-gray-400 mt-3"
                   style={{ fontFamily: 'Inter, sans-serif' }}
                 >
-                  All 12 lessons completed
+                  All {totalCount} lessons completed
                 </p>
               </motion.div>
 
@@ -240,24 +313,24 @@ export function LessonPlayer({
               >
                 {/* Primary Button */}
                 <motion.button
-                  onClick={onViewCourses}
+                  onClick={() => navigate(`/certificate/${courseId}`)}
                   className="px-8 py-4 bg-gradient-to-r from-[#6E5B6A] to-[#8b7d8e] text-white rounded-xl font-semibold shadow-lg shadow-[#6E5B6A]/30 hover:shadow-xl hover:shadow-[#6E5B6A]/40 transition-all"
                   style={{ fontFamily: 'Inter, sans-serif' }}
                   whileHover={{ scale: 1.05, y: -2 }}
                   whileTap={{ scale: 0.98 }}
                 >
-                  View My Courses
+                  View Certificate
                 </motion.button>
 
                 {/* Secondary Button */}
                 <motion.button
-                  onClick={onLeaveReview}
+                  onClick={() => navigate('/courses')}
                   className="px-8 py-4 bg-[#1a1f2e] text-white rounded-xl font-semibold border-2 border-[#F5AE35]/30 hover:border-[#F5AE35] hover:bg-[#F5AE35]/5 transition-all"
                   style={{ fontFamily: 'Inter, sans-serif' }}
                   whileHover={{ scale: 1.05, y: -2 }}
                   whileTap={{ scale: 0.98 }}
                 >
-                  Leave a Review
+                  Browse More Courses
                 </motion.button>
               </motion.div>
 
@@ -408,71 +481,76 @@ export function LessonPlayer({
 
                 {/* Previous/Next Buttons */}
                 <div className="space-y-3">
-                  {onPrevious && (
+                  {prevLesson && (
                     <motion.button
-                      onClick={onPrevious}
+                      onClick={handleGoToPrevious}
                       className="w-full flex items-center gap-3 bg-[#202732] hover:bg-[#2a3142] px-4 py-3 rounded-lg transition-colors"
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                     >
                       <ChevronLeft className="w-5 h-5 text-[#F5AE35]" />
-                      <span
-                        className="text-white font-medium"
-                        style={{ fontFamily: 'Inter, sans-serif' }}
-                      >
-                        Previous Lesson
-                      </span>
+                      <div className="text-left flex-1">
+                        <span className="text-white font-medium text-sm" style={{ fontFamily: 'Inter, sans-serif' }}>
+                          Previous Lesson
+                        </span>
+                        <p className="text-gray-400 text-xs truncate" style={{ fontFamily: 'Inter, sans-serif' }}>
+                          {prevLesson.title}
+                        </p>
+                      </div>
                     </motion.button>
                   )}
 
-                  {onNext && (
+                  {nextLesson && (
                     <motion.button
-                      onClick={onNext}
+                      onClick={handleGoToNext}
                       className="w-full flex items-center justify-between gap-3 bg-gradient-to-r from-[#6E5B6A] to-[#8b7d8e] hover:from-[#5d4d59] hover:to-[#7a6c7f] px-4 py-3 rounded-lg transition-colors"
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                     >
-                      <span
-                        className="text-white font-medium"
-                        style={{ fontFamily: 'Inter, sans-serif' }}
-                      >
-                        Next Lesson
-                      </span>
+                      <div className="text-left flex-1">
+                        <span className="text-white font-medium text-sm" style={{ fontFamily: 'Inter, sans-serif' }}>
+                          Next Lesson
+                        </span>
+                        <p className="text-white/70 text-xs truncate" style={{ fontFamily: 'Inter, sans-serif' }}>
+                          {nextLesson.title}
+                        </p>
+                      </div>
                       <ChevronRight className="w-5 h-5 text-white" />
                     </motion.button>
                   )}
 
-                  {/* Demo: Test Completion State Button */}
-                  <motion.button
-                    onClick={() => setShowCompletionState(!showCompletionState)}
-                    className="w-full flex items-center justify-center gap-2 bg-[#F5AE35]/10 hover:bg-[#F5AE35]/20 text-[#F5AE35] px-4 py-3 rounded-lg transition-colors border border-[#F5AE35]/30"
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <CheckCircle2 className="w-4 h-4" />
-                    <span
-                      className="font-medium text-sm"
-                      style={{ fontFamily: 'Inter, sans-serif' }}
+                  {/* Start Quiz button — visible when a quiz exists */}
+                  {courseQuiz && (
+                    <motion.button
+                      onClick={() => {
+                        // For now, treat quiz as auto-pass: mark all remaining lessons complete, trigger course completion
+                        handleMarkComplete();
+                      }}
+                      className="w-full flex items-center justify-center gap-2 bg-[#F5AE35] hover:bg-[#e09e2a] text-white px-4 py-3 rounded-lg transition-colors font-semibold"
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
                     >
-                      {showCompletionState ? 'Hide' : 'Preview'} Completion
-                    </span>
-                  </motion.button>
+                      <HelpCircle className="w-5 h-5" />
+                      <span className="text-sm" style={{ fontFamily: 'Inter, sans-serif' }}>
+                        Start Quiz: {courseQuiz.title}
+                      </span>
+                    </motion.button>
+                  )}
 
-                  {/* Demo: Test Points Popup Button */}
-                  <motion.button
-                    onClick={() => setShowPointsPopup(true)}
-                    className="w-full flex items-center justify-center gap-2 bg-[#6E5B6A]/10 hover:bg-[#6E5B6A]/20 text-[#6E5B6A] px-4 py-3 rounded-lg transition-colors border border-[#6E5B6A]/30"
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <Star className="w-4 h-4" />
-                    <span
-                      className="font-medium text-sm"
-                      style={{ fontFamily: 'Inter, sans-serif' }}
+                  {/* View Certificate — only when course is completed */}
+                  {isLastLesson && isCompleted && completionResult?.isCourseCompleted && (
+                    <motion.button
+                      onClick={() => navigate(`/certificate/${courseId}`)}
+                      className="w-full flex items-center justify-center gap-2 bg-[#2FBF71] hover:bg-[#27a862] text-white px-4 py-3 rounded-lg transition-colors font-semibold"
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
                     >
-                      Preview Points Popup
-                    </span>
-                  </motion.button>
+                      <CheckCircle2 className="w-5 h-5" />
+                      <span className="text-sm" style={{ fontFamily: 'Inter, sans-serif' }}>
+                        View Certificate
+                      </span>
+                    </motion.button>
+                  )}
                 </div>
 
                 {/* Completion Status */}
@@ -523,11 +601,14 @@ export function LessonPlayer({
                         className="text-white font-semibold"
                         style={{ fontFamily: 'Inter, sans-serif' }}
                       >
-                        5 / 12
+                        {completedCount} / {totalCount}
                       </span>
                     </div>
                     <div className="w-full bg-gray-700 rounded-full h-2">
-                      <div className="bg-[#2FBF71] h-full w-5/12 rounded-full"></div>
+                      <div
+                        className="bg-[#2FBF71] h-full rounded-full transition-all duration-500"
+                        style={{ width: totalCount > 0 ? `${(completedCount / totalCount) * 100}%` : '0%' }}
+                      />
                     </div>
                   </div>
                 </div>
@@ -541,17 +622,11 @@ export function LessonPlayer({
       <PointsBadgePopup
         isOpen={showPointsPopup}
         onClose={() => setShowPointsPopup(false)}
-        pointsEarned={150}
-        totalPoints={450}
-        badgeUnlocked={undefined}
-        onContinue={() => {
-          setShowPointsPopup(false);
-          onNext?.();
-        }}
-        onBackToCourse={() => {
-          setShowPointsPopup(false);
-          onBack();
-        }}
+        pointsEarned={completionResult?.pointsEarned ?? 0}
+        totalPoints={completionResult?.totalPoints ?? currentUser?.points ?? 0}
+        badgeUnlocked={completionResult?.newBadge}
+        onContinue={handlePointsPopupContinue}
+        onBackToCourse={handlePointsPopupBack}
       />
     </div>
   );

@@ -2,34 +2,71 @@ import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { Plus, HelpCircle, Edit, Trash2, Award } from 'lucide-react';
 import { QuizBuilderPage } from '../QuizBuilderPage';
+import { useToast } from '../../ui/toast';
+import type { Quiz, Question } from '../../../types';
 
-interface Quiz {
-  id: string;
-  title: string;
-  questions: number;
-  passingScore: number;
-  points: number;
+interface QuizTabProps {
+  quizzes: Quiz[];
+  onQuizzesChange: (quizzes: Quiz[]) => void;
+  courseId: string;
 }
 
-const mockQuizzes: Quiz[] = [
-  { id: '1', title: 'Introduction Knowledge Check', questions: 5, passingScore: 80, points: 50 },
-  { id: '2', title: 'Final Assessment', questions: 15, passingScore: 70, points: 150 },
-];
-
-export function QuizTab() {
-  const [quizzes, setQuizzes] = useState<Quiz[]>(mockQuizzes);
+export function QuizTab({ quizzes, onQuizzesChange, courseId }: QuizTabProps) {
   const [editingQuizId, setEditingQuizId] = useState<string | null>(null);
   const [isCreatingQuiz, setIsCreatingQuiz] = useState(false);
+  const { showToast } = useToast();
+
+  const handleQuizSaved = (quizData: { title: string; questions: { id: string; text: string; type: string; options: string[]; correctAnswer: number; points: number }[] }) => {
+    const quizId = editingQuizId && editingQuizId !== 'new' ? editingQuizId : `quiz-${Date.now()}`;
+
+    const mappedQuestions: Question[] = quizData.questions.map((q) => ({
+      id: q.id,
+      quizId,
+      question: q.text,
+      options: q.options,
+      correctAnswer: q.correctAnswer,
+      points: q.points,
+    }));
+
+    const totalPoints = mappedQuestions.reduce((sum, q) => sum + q.points, 0);
+
+    const newQuiz: Quiz = {
+      id: quizId,
+      courseId,
+      title: quizData.title,
+      description: '',
+      questions: mappedQuestions,
+      passingScore: 70,
+      order: quizzes.length + 1,
+    };
+
+    if (editingQuizId && editingQuizId !== 'new') {
+      // Update existing quiz
+      onQuizzesChange(quizzes.map((q) => (q.id === editingQuizId ? newQuiz : q)));
+      showToast('Quiz updated successfully');
+    } else {
+      // Add new quiz
+      onQuizzesChange([...quizzes, newQuiz]);
+      showToast('Quiz created successfully');
+    }
+
+    setEditingQuizId(null);
+    setIsCreatingQuiz(false);
+  };
+
+  const handleQuizBack = () => {
+    // Cancel without saving
+    setEditingQuizId(null);
+    setIsCreatingQuiz(false);
+  };
 
   // If editing or creating, show the quiz builder
   if (editingQuizId || isCreatingQuiz) {
     return (
       <QuizBuilderPage
         quizId={editingQuizId || 'new'}
-        onBack={() => {
-          setEditingQuizId(null);
-          setIsCreatingQuiz(false);
-        }}
+        onBack={handleQuizBack}
+        onSave={handleQuizSaved}
       />
     );
   }
@@ -80,13 +117,13 @@ export function QuizTab() {
                       <div className="flex items-center gap-1">
                         <HelpCircle className="w-4 h-4" />
                         <span style={{ fontFamily: 'Inter, sans-serif' }}>
-                          {quiz.questions} questions
+                          {quiz.questions.length} questions
                         </span>
                       </div>
                       <div className="flex items-center gap-1">
                         <Award className="w-4 h-4" />
                         <span style={{ fontFamily: 'Inter, sans-serif' }}>
-                          {quiz.points} points
+                          {quiz.questions.reduce((s, q) => s + q.points, 0)} points
                         </span>
                       </div>
                       <div style={{ fontFamily: 'Inter, sans-serif' }}>
@@ -106,7 +143,7 @@ export function QuizTab() {
                       <Edit className="w-5 h-5" />
                     </motion.button>
                     <motion.button
-                      onClick={() => setQuizzes(quizzes.filter((q) => q.id !== quiz.id))}
+                      onClick={() => onQuizzesChange(quizzes.filter((q) => q.id !== quiz.id))}
                       className="p-2 text-red-600 hover:bg-white rounded-lg transition-colors"
                       whileHover={{ scale: 1.1 }}
                       whileTap={{ scale: 0.95 }}

@@ -6,6 +6,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
+  password: string;
   role: UserRole;
   avatar?: string;
   points: number;
@@ -22,6 +23,7 @@ export interface Course {
   instructorId: string;
   instructorName: string;
   category: string;
+  tags: string[];
   level: 'beginner' | 'intermediate' | 'advanced';
   duration: string; // e.g., "4 hours"
   price: number;

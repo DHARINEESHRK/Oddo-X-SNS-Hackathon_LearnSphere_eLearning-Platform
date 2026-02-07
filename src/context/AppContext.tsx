@@ -1,6 +1,49 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { User, Course, Enrollment, Review, UserRole } from '../types';
-import { mockUsers, mockCourses, mockEnrollments, mockReviews } from '../data/mockData';
+import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
+import { User, Course, Enrollment, Review, UserRole, Badge } from '../types';
+import { mockUsers, mockEnrollments, mockReviews } from '../data/mockData';
+import { loginUser, signupUser, logoutUser, fetchCourses, createCourseApi, updateCourseApi, deleteCourseApi } from '../api/client';
+
+// --------------- localStorage helpers ---------------
+const LS_KEYS = {
+  currentUser: 'ls_currentUser',
+  courses: 'ls_courses',
+  enrollments: 'ls_enrollments',
+} as const;
+
+function loadFromStorage<T>(key: string, fallback: T): T {
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw) return JSON.parse(raw) as T;
+  } catch {
+    // corrupted data — clear it
+    localStorage.removeItem(key);
+  }
+  return fallback;
+}
+
+function saveToStorage<T>(key: string, value: T): void {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // storage full or unavailable — silently ignore
+  }
+}
+
+// Badge definitions — earned at point thresholds
+const BADGE_THRESHOLDS: { points: number; badge: Omit<Badge, 'earnedAt'> }[] = [
+  { points: 50,  badge: { id: 'badge-starter',     name: 'Quick Starter',    description: 'Earn your first 50 points',  icon: '🚀' } },
+  { points: 150, badge: { id: 'badge-learner',      name: 'Eager Learner',    description: 'Earn 150 points',            icon: '📚' } },
+  { points: 300, badge: { id: 'badge-scholar',      name: 'Scholar',          description: 'Earn 300 points',            icon: '🎓' } },
+  { points: 500, badge: { id: 'badge-master',       name: 'Knowledge Master', description: 'Earn 500 points',            icon: '👑' } },
+  { points: 1000,badge: { id: 'badge-legend',       name: 'Legend',           description: 'Earn 1000 points',           icon: '⭐' } },
+];
+
+interface LessonCompletionResult {
+  pointsEarned: number;
+  totalPoints: number;
+  newBadge?: { name: string; icon: string };
+  isCourseCompleted: boolean;
+}
 
 interface AppContextType {
   // Current user
@@ -8,9 +51,9 @@ interface AppContextType {
   setCurrentUser: (user: User | null) => void;
   
   // Authentication
-  login: (email: string, password: string) => boolean;
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
-  register: (name: string, email: string, password: string) => boolean;
+  register: (name: string, email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   
   // Courses
   courses: Course[];
@@ -46,6 +89,10 @@ interface AppContextType {
   // Points and badges
   addPoints: (userId: string, points: number) => void;
   
+  // Learning flow
+  completeLesson: (courseId: string, lessonId: string) => LessonCompletionResult | null;
+  getEnrollmentForCourse: (courseId: string) => Enrollment | undefined;
+  
   // Permissions
   canEditCourse: (courseId: string) => boolean;
   canViewCourse: (courseId: string) => boolean;
@@ -55,37 +102,126 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [courses, setCourses] = useState<Course[]>(mockCourses);
-  const [enrollments, setEnrollments] = useState<Enrollment[]>(mockEnrollments);
+  const [currentUser, setCurrentUser] = useState<User | null>(
+    () => loadFromStorage<User | null>(LS_KEYS.currentUser, null)
+  );
+  const [courses, setCourses] = useState<Course[]>(
+    () => loadFromStorage<Course[]>(LS_KEYS.courses, [])
+  );
+  const [coursesLoaded, setCoursesLoaded] = useState(false);
+  const [enrollments, setEnrollments] = useState<Enrollment[]>(
+    () => loadFromStorage<Enrollment[]>(LS_KEYS.enrollments, mockEnrollments)
+  );
   const [reviews, setReviews] = useState<Review[]>(mockReviews);
   const [users, setUsers] = useState<User[]>(mockUsers);
 
+  // Persist to localStorage whenever tracked state changes
+  useEffect(() => { saveToStorage(LS_KEYS.currentUser, currentUser); }, [currentUser]);
+  useEffect(() => { saveToStorage(LS_KEYS.courses, courses); }, [courses]);
+  useEffect(() => { saveToStorage(LS_KEYS.enrollments, enrollments); }, [enrollments]);
+
+  // Fetch courses from MongoDB on mount
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const backendCourses = await fetchCourses();
+        if (!cancelled && backendCourses.length > 0) {
+          setCourses(backendCourses);
+        }
+      } catch {
+        // Backend unavailable — keep whatever is in localStorage (or empty)
+        console.warn('Could not fetch courses from backend, using cached data');
+      } finally {
+        if (!cancelled) setCoursesLoaded(true);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   // Authentication
-  const login = (email: string, password: string): boolean => {
-    // In a real app, this would validate against a backend
-    const user = users.find(u => u.email === email);
-    if (user) {
-      setCurrentUser(user);
-      return true;
+  const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+    if (!email || !password) {
+      return { success: false, error: 'Please enter both email and password' };
     }
-    return false;
+
+    // Try the real backend first
+    try {
+      const res = await loginUser({ email, password });
+      if (res.token && res.user) {
+        const loggedInUser: User = {
+          id: res.user.id,
+          name: res.user.name,
+          email: res.user.email,
+          password: '',
+          role: (res.user.role as UserRole) || 'learner',
+          points: 0,
+          badges: [],
+          enrolledCourses: [],
+        };
+        setCurrentUser(loggedInUser);
+        return { success: true };
+      }
+    } catch {
+      // Backend unavailable — fall back to local mock data
+    }
+
+    // Fallback: local mock validation
+    const user = users.find(u => u.email === email);
+    if (!user) {
+      return { success: false, error: 'No account found with this email' };
+    }
+    if (user.password !== password) {
+      return { success: false, error: 'Incorrect password' };
+    }
+    setCurrentUser(user);
+    return { success: true };
   };
 
   const logout = () => {
+    logoutUser();
     setCurrentUser(null);
+    localStorage.removeItem(LS_KEYS.currentUser);
   };
 
-  const register = (name: string, email: string, password: string): boolean => {
-    // Check if user already exists
+  const register = async (name: string, email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+    // Check locally first
     if (users.find(u => u.email === email)) {
-      return false;
+      return { success: false, error: 'An account with this email already exists' };
     }
-    
+
+    if (password.length < 6) {
+      return { success: false, error: 'Password must be at least 6 characters' };
+    }
+
+    // Try real backend
+    try {
+      const res = await signupUser({ name, email, password });
+      if (res.token && res.user) {
+        const newUser: User = {
+          id: res.user.id,
+          name: res.user.name,
+          email: res.user.email,
+          password: '',
+          role: (res.user.role as UserRole) || 'learner',
+          points: 0,
+          badges: [],
+          enrolledCourses: [],
+        };
+        setUsers([...users, newUser]);
+        setCurrentUser(newUser);
+        return { success: true };
+      }
+    } catch {
+      // Backend unavailable — fall back to local
+    }
+
+    // Fallback: local registration
     const newUser: User = {
       id: `learner-${Date.now()}`,
       name,
       email,
+      password,
       role: 'learner',
       points: 0,
       badges: [],
@@ -94,7 +230,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     
     setUsers([...users, newUser]);
     setCurrentUser(newUser);
-    return true;
+    return { success: true };
   };
 
   // Course management
@@ -108,13 +244,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
     courses.filter(c => c.instructorId === instructorId);
 
   const createCourse = (courseData: Omit<Course, 'id' | 'createdAt' | 'updatedAt'>): Course => {
+    const tempId = `course-${Date.now()}`;
     const newCourse: Course = {
       ...courseData,
-      id: `course-${Date.now()}`,
+      id: tempId,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    setCourses([...courses, newCourse]);
+    setCourses(prev => [...prev, newCourse]);
+
+    // Persist to MongoDB in background
+    createCourseApi(courseData)
+      .then((saved) => {
+        // Replace temp course with the one from DB (real _id)
+        setCourses(prev => prev.map(c => c.id === tempId ? saved : c));
+      })
+      .catch((err) => console.warn('Failed to save course to backend:', err));
+
     return newCourse;
   };
 
@@ -122,10 +268,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setCourses(courses.map(c => 
       c.id === id ? { ...c, ...updates, updatedAt: new Date().toISOString() } : c
     ));
+    // Sync to MongoDB
+    updateCourseApi(id, updates).catch((err) =>
+      console.warn('Failed to update course in backend:', err)
+    );
   };
 
   const deleteCourse = (id: string) => {
     setCourses(courses.filter(c => c.id !== id));
+    // Sync to MongoDB
+    deleteCourseApi(id).catch((err) =>
+      console.warn('Failed to delete course in backend:', err)
+    );
   };
 
   const publishCourse = (id: string) => {
@@ -256,17 +410,100 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // Points and badges
   const addPoints = (userId: string, points: number) => {
-    setUsers(users.map(u => {
+    setUsers(prev => prev.map(u => {
       if (u.id === userId) {
         const newPoints = u.points + points;
-        // Update current user if it's them
         if (currentUser?.id === userId) {
-          setCurrentUser({ ...u, points: newPoints });
+          setCurrentUser(cur => cur ? { ...cur, points: newPoints } : cur);
         }
         return { ...u, points: newPoints };
       }
       return u;
     }));
+  };
+
+  // Evaluate whether a user earned a new badge at their current point total
+  const evaluateBadge = (user: User, newTotalPoints: number): Badge | undefined => {
+    const earned = user.badges.map(b => b.id);
+    for (const t of BADGE_THRESHOLDS) {
+      if (newTotalPoints >= t.points && !earned.includes(t.badge.id)) {
+        return { ...t.badge, earnedAt: new Date().toISOString() };
+      }
+    }
+    return undefined;
+  };
+
+  // Award a badge to the user
+  const awardBadge = (userId: string, badge: Badge) => {
+    setUsers(prev => prev.map(u => {
+      if (u.id === userId) {
+        const updated = { ...u, badges: [...u.badges, badge] };
+        if (currentUser?.id === userId) {
+          setCurrentUser(updated);
+        }
+        return updated;
+      }
+      return u;
+    }));
+  };
+
+  // Get enrollment for a course for the current user
+  const getEnrollmentForCourse = (courseId: string): Enrollment | undefined => {
+    if (!currentUser) return undefined;
+    return enrollments.find(e => e.userId === currentUser.id && e.courseId === courseId);
+  };
+
+  // Complete a lesson: update progress, award points, evaluate badge, check course completion
+  const completeLesson = (courseId: string, lessonId: string): LessonCompletionResult | null => {
+    if (!currentUser) return null;
+
+    const course = getCourseById(courseId);
+    if (!course) return null;
+
+    let enrollment = enrollments.find(e => e.userId === currentUser.id && e.courseId === courseId);
+    if (!enrollment) {
+      // Auto-enroll
+      enrollInCourse(currentUser.id, courseId);
+      enrollment = enrollments.find(e => e.userId === currentUser.id && e.courseId === courseId);
+      if (!enrollment) return null;
+    }
+
+    // Already completed this lesson
+    if (enrollment.completedLessons.includes(lessonId)) {
+      return { pointsEarned: 0, totalPoints: currentUser.points, isCourseCompleted: enrollment.status === 'completed' };
+    }
+
+    // Mark lesson complete via updateProgress (adds 10 pts internally)
+    updateProgress(enrollment.id, lessonId);
+
+    const LESSON_POINTS = 10;
+    const newTotal = currentUser.points + LESSON_POINTS;
+
+    // Check if course is now completed
+    const completedCount = enrollment.completedLessons.length + 1; // +1 for the one we just added
+    const isCourseCompleted = completedCount >= course.lessons.length;
+
+    // If course completed, award bonus points
+    const COURSE_BONUS = isCourseCompleted ? 100 : 0;
+    if (COURSE_BONUS > 0) {
+      addPoints(currentUser.id, COURSE_BONUS);
+    }
+
+    const finalTotal = newTotal + COURSE_BONUS;
+
+    // Evaluate badge
+    const user = users.find(u => u.id === currentUser.id) || currentUser;
+    const newBadge = evaluateBadge(user, finalTotal);
+    if (newBadge) {
+      awardBadge(currentUser.id, newBadge);
+    }
+
+    return {
+      pointsEarned: LESSON_POINTS + COURSE_BONUS,
+      totalPoints: finalTotal,
+      newBadge: newBadge ? { name: newBadge.name, icon: newBadge.icon } : undefined,
+      isCourseCompleted,
+    };
   };
 
   // Permissions
@@ -329,6 +566,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     getAllUsers,
     updateUserRole,
     addPoints,
+    completeLesson,
+    getEnrollmentForCourse,
     canEditCourse,
     canViewCourse,
     canManageUsers,

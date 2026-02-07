@@ -1,14 +1,49 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
+import { Plus, X, Check } from 'lucide-react';
+import { useToast } from '../../ui/toast';
 
-export function DescriptionTab() {
-  const [description, setDescription] = useState('');
-  const [category, setCategory] = useState('Web Development');
-  const [level, setLevel] = useState('Beginner');
-  const [learningObjectives, setLearningObjectives] = useState<string[]>([
-    'Build modern web applications',
-    'Understand core concepts',
-  ]);
+interface DescriptionTabProps {
+  description: string;
+  onDescriptionChange: (value: string) => void;
+  category: string;
+  onCategoryChange: (value: string) => void;
+  level: string;
+  onLevelChange: (value: string) => void;
+  learningObjectives: string[];
+  onLearningObjectivesChange: (value: string[]) => void;
+}
+
+export function DescriptionTab({
+  description,
+  onDescriptionChange,
+  category,
+  onCategoryChange,
+  level,
+  onLevelChange,
+  learningObjectives,
+  onLearningObjectivesChange,
+}: DescriptionTabProps) {
+  const [newObjective, setNewObjective] = useState('');
+  const [showSaveConfirmation, setShowSaveConfirmation] = useState(false);
+  const { showToast } = useToast();
+
+  const handleSaveDescription = () => {
+    showToast('Description saved successfully');
+    setShowSaveConfirmation(true);
+    setTimeout(() => setShowSaveConfirmation(false), 2000);
+  };
+
+  const handleAddObjective = () => {
+    if (newObjective.trim()) {
+      onLearningObjectivesChange([...learningObjectives, newObjective.trim()]);
+      setNewObjective('');
+    }
+  };
+
+  const handleRemoveObjective = (index: number) => {
+    onLearningObjectivesChange(learningObjectives.filter((_, i) => i !== index));
+  };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -31,14 +66,34 @@ export function DescriptionTab() {
 
           <textarea
             value={description}
-            onChange={(e) => setDescription(e.target.value)}
+            onChange={(e) => onDescriptionChange(e.target.value)}
             placeholder="Write a compelling description of your course. What will students learn? What problems will they solve? What makes this course unique?"
             className="w-full h-96 px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-[#6E5B6A] focus:outline-none resize-none transition-colors"
             style={{ fontFamily: 'Inter, sans-serif', lineHeight: '1.6' }}
           />
 
-          <div className="mt-4 text-sm text-gray-500" style={{ fontFamily: 'Inter, sans-serif' }}>
-            {description.length} / 2000 characters
+          <div className="flex items-center justify-between mt-4">
+            <div className="text-sm text-gray-500" style={{ fontFamily: 'Inter, sans-serif' }}>
+              {description.length} / 2000 characters
+            </div>
+
+            {/* Save Button */}
+            <motion.button
+              onClick={handleSaveDescription}
+              className="px-6 py-3 bg-[#6E5B6A] text-white rounded-lg hover:bg-[#5a4a56] transition-colors flex items-center gap-2"
+              style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              {showSaveConfirmation ? (
+                <>
+                  <Check className="w-5 h-5" />
+                  Saved!
+                </>
+              ) : (
+                'Save Description'
+              )}
+            </motion.button>
           </div>
         </motion.div>
       </div>
@@ -69,7 +124,7 @@ export function DescriptionTab() {
               </label>
               <select
                 value={category}
-                onChange={(e) => setCategory(e.target.value)}
+                onChange={(e) => onCategoryChange(e.target.value)}
                 className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-[#6E5B6A] focus:outline-none transition-colors"
                 style={{ fontFamily: 'Inter, sans-serif' }}
               >
@@ -91,13 +146,13 @@ export function DescriptionTab() {
               </label>
               <select
                 value={level}
-                onChange={(e) => setLevel(e.target.value)}
+                onChange={(e) => onLevelChange(e.target.value)}
                 className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-[#6E5B6A] focus:outline-none transition-colors"
                 style={{ fontFamily: 'Inter, sans-serif' }}
               >
-                <option>Beginner</option>
-                <option>Intermediate</option>
-                <option>Advanced</option>
+                <option value="beginner">Beginner</option>
+                <option value="intermediate">Intermediate</option>
+                <option value="advanced">Advanced</option>
                 <option>All Levels</option>
               </select>
             </div>
@@ -118,24 +173,48 @@ export function DescriptionTab() {
             Learning Objectives
           </h3>
 
-          <div className="space-y-3">
+          <div className="space-y-3 mb-4">
             {learningObjectives.map((objective, index) => (
               <div
                 key={index}
-                className="p-3 bg-[#F5AE35]/10 rounded-lg border-l-4 border-[#F5AE35]"
+                className="group p-3 bg-[#F5AE35]/10 rounded-lg border-l-4 border-[#F5AE35] flex items-start gap-2"
               >
-                <p className="text-sm text-[#202732]" style={{ fontFamily: 'Inter, sans-serif' }}>
+                <p className="flex-1 text-sm text-[#202732]" style={{ fontFamily: 'Inter, sans-serif' }}>
                   {objective}
                 </p>
+                <button
+                  onClick={() => handleRemoveObjective(index)}
+                  className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-100 rounded"
+                >
+                  <X className="w-4 h-4 text-red-500" />
+                </button>
               </div>
             ))}
+          </div>
 
-            <button
-              className="w-full py-2 text-sm text-[#6E5B6A] hover:bg-[#6E5B6A]/5 rounded-lg transition-colors"
-              style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}
+          {/* Add Objective Input */}
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={newObjective}
+              onChange={(e) => setNewObjective(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleAddObjective();
+                }
+              }}
+              placeholder="Enter learning objective"
+              className="flex-1 px-3 py-2 border-2 border-gray-300 rounded-lg focus:border-[#6E5B6A] focus:outline-none text-sm"
+              style={{ fontFamily: 'Inter, sans-serif' }}
+            />
+            <motion.button
+              onClick={handleAddObjective}
+              className="p-2 bg-[#6E5B6A] text-white rounded-lg hover:bg-[#5a4a56] transition-colors"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.98 }}
             >
-              + Add Objective
-            </button>
+              <Plus className="w-5 h-5" />
+            </motion.button>
           </div>
         </motion.div>
       </div>

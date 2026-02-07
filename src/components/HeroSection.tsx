@@ -2,8 +2,10 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { ArrowDown } from 'lucide-react';
 import { BackgroundAnimation } from './BackgroundAnimation';
+import { useNavigate } from 'react-router-dom';
 
-export function HeroSection({ onStartLearning }: { onStartLearning?: () => void }) {
+export function HeroSection() {
+  const navigate = useNavigate();
   return (
     <section className="relative max-w-7xl mx-auto px-6 pt-20 pb-32">
       <BackgroundAnimation />
@@ -86,7 +88,7 @@ export function HeroSection({ onStartLearning }: { onStartLearning?: () => void 
           transition={{ duration: 0.6, delay: 0.4, ease: 'easeOut' }}
         >
           <motion.button
-            onClick={onStartLearning}
+            onClick={() => navigate('/login')}
             className="bg-[#6E5B6A] text-white px-8 py-4 rounded-xl text-lg shadow-lg"
             initial={{ y: 0 }}
             animate={{

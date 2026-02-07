@@ -1,14 +1,30 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { motion } from 'motion/react';
 import { Globe, Lock, Users, Award, Download, MessageSquare } from 'lucide-react';
 
-export function OptionsTab() {
-  const [isPublic, setIsPublic] = useState(true);
-  const [requiresEnrollment, setRequiresEnrollment] = useState(false);
-  const [enableComments, setEnableComments] = useState(true);
-  const [enableCertificate, setEnableCertificate] = useState(true);
-  const [enableDownloads, setEnableDownloads] = useState(false);
-  const [maxStudents, setMaxStudents] = useState('');
+interface OptionsTabProps {
+  isPublic: boolean;
+  onPublicChange: (v: boolean) => void;
+  requiresEnrollment: boolean;
+  onRequiresEnrollmentChange: (v: boolean) => void;
+  enableComments: boolean;
+  onEnableCommentsChange: (v: boolean) => void;
+  enableCertificate: boolean;
+  onEnableCertificateChange: (v: boolean) => void;
+  enableDownloads: boolean;
+  onEnableDownloadsChange: (v: boolean) => void;
+  maxStudents: string;
+  onMaxStudentsChange: (v: string) => void;
+}
+
+export function OptionsTab({
+  isPublic, onPublicChange,
+  requiresEnrollment, onRequiresEnrollmentChange,
+  enableComments, onEnableCommentsChange,
+  enableCertificate, onEnableCertificateChange,
+  enableDownloads, onEnableDownloadsChange,
+  maxStudents, onMaxStudentsChange,
+}: OptionsTabProps) {
 
   const ToggleSwitch = ({ enabled, onChange }: { enabled: boolean; onChange: () => void }) => (
     <button
@@ -65,7 +81,7 @@ export function OptionsTab() {
                   Anyone can discover and view this course
                 </p>
               </div>
-              <ToggleSwitch enabled={isPublic} onChange={() => setIsPublic(!isPublic)} />
+              <ToggleSwitch enabled={isPublic} onChange={() => onPublicChange(!isPublic)} />
             </div>
 
             {/* Requires Enrollment */}
@@ -83,7 +99,7 @@ export function OptionsTab() {
               </div>
               <ToggleSwitch
                 enabled={requiresEnrollment}
-                onChange={() => setRequiresEnrollment(!requiresEnrollment)}
+                onChange={() => onRequiresEnrollmentChange(!requiresEnrollment)}
               />
             </div>
 
@@ -98,7 +114,7 @@ export function OptionsTab() {
               <input
                 type="number"
                 value={maxStudents}
-                onChange={(e) => setMaxStudents(e.target.value)}
+                onChange={(e) => onMaxStudentsChange(e.target.value)}
                 placeholder="Leave empty for unlimited"
                 className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-[#6E5B6A] focus:outline-none transition-colors"
                 style={{ fontFamily: 'Inter, sans-serif' }}
@@ -150,7 +166,7 @@ export function OptionsTab() {
               </div>
               <ToggleSwitch
                 enabled={enableComments}
-                onChange={() => setEnableComments(!enableComments)}
+                onChange={() => onEnableCommentsChange(!enableComments)}
               />
             </div>
 
@@ -172,7 +188,7 @@ export function OptionsTab() {
               </div>
               <ToggleSwitch
                 enabled={enableCertificate}
-                onChange={() => setEnableCertificate(!enableCertificate)}
+                onChange={() => onEnableCertificateChange(!enableCertificate)}
               />
             </div>
 
@@ -194,7 +210,7 @@ export function OptionsTab() {
               </div>
               <ToggleSwitch
                 enabled={enableDownloads}
-                onChange={() => setEnableDownloads(!enableDownloads)}
+                onChange={() => onEnableDownloadsChange(!enableDownloads)}
               />
             </div>
           </div>

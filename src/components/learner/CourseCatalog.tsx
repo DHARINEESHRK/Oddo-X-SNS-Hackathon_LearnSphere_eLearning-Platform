@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
+import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
+import { EmptyState } from '../EmptyState';
 import { Search, Filter, Star, Clock, Users, Lock } from 'lucide-react';
 import { Course } from '../../types';
 
@@ -92,9 +94,7 @@ export function CourseCatalog() {
       </div>
 
       {filteredCourses.length === 0 && (
-        <div className="text-center py-12">
-          <p className="text-[#9AACB6] text-lg">No courses found matching your criteria.</p>
-        </div>
+        <EmptyState variant="search" />
       )}
     </div>
   );
@@ -110,6 +110,7 @@ function CourseCard({
   onEnroll: (courseId: string) => void;
 }) {
   const { currentUser } = useApp();
+  const navigate = useNavigate();
   const canStartLearning = currentUser !== null;
 
   return (
@@ -179,12 +180,14 @@ function CourseCard({
           </div>
           
           {isEnrolled ? (
-            <button
-              className="bg-[#9AACB6] text-white px-6 py-2 rounded-lg cursor-default"
-              disabled
+            <motion.button
+              onClick={() => navigate(`/course/${course.id}`)}
+              className="bg-[#6E5B6A] text-white px-6 py-2 rounded-lg font-semibold hover:bg-[#5a4a56] transition-colors"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
             >
-              Enrolled
-            </button>
+              Go to Course
+            </motion.button>
           ) : (
             <motion.button
               onClick={() => onEnroll(course.id)}

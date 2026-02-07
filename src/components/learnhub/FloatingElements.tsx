@@ -105,13 +105,14 @@ export function FloatingElements() {
       </motion.div>
 
       {/* Animated Particles */}
-      {[...Array(20)].map((_, i) => (
+      {[...Array(8)].map((_, i) => (
         <motion.div
           key={i}
           className="absolute w-1 h-1 bg-[#6E5B6A] rounded-full opacity-20"
           style={{
-            top: `${Math.random() * 100}%`,
-            left: `${Math.random() * 100}%`,
+            top: `${15 + i * 12}%`,
+            left: `${10 + i * 11}%`,
+            willChange: 'transform, opacity',
           }}
           animate={{
             y: [0, -100, 0],
@@ -129,13 +130,14 @@ export function FloatingElements() {
       ))}
 
       {/* Floating Sparkles */}
-      {[...Array(15)].map((_, i) => (
+      {[...Array(6)].map((_, i) => (
         <motion.div
           key={`sparkle-${i}`}
           className="absolute"
           style={{
-            top: `${Math.random() * 100}%`,
-            left: `${Math.random() * 100}%`,
+            top: `${10 + i * 15}%`,
+            left: `${5 + i * 16}%`,
+            willChange: 'transform, opacity',
           }}
           animate={{
             y: [0, -80, 0],

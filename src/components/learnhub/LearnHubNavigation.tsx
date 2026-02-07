@@ -2,9 +2,16 @@ import React from 'react';
 import { User, LogOut, GraduationCap, BookOpen } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { motion } from 'motion/react';
+import { useNavigate } from 'react-router-dom';
 
 export function LearnHubNavigation() {
   const { logout, currentUser } = useApp();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
 
   const getRoleIcon = () => {
     if (currentUser?.role === 'instructor') {
@@ -70,7 +77,7 @@ export function LearnHubNavigation() {
 
             {/* Logout Button */}
             <motion.button
-              onClick={logout}
+              onClick={handleLogout}
               className="flex items-center gap-2 px-4 py-2 text-[#6E5B6A] hover:bg-[#F1F2F4] rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-[#6E5B6A] focus:ring-offset-2"
               title="Logout"
               whileHover={{ scale: 1.05 }}

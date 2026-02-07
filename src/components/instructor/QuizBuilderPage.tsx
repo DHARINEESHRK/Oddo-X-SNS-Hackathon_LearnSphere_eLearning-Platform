@@ -9,6 +9,8 @@ import {
   X,
   CheckCircle,
   Circle,
+  Save,
+  Check,
 } from 'lucide-react';
 
 interface Question {
@@ -23,9 +25,10 @@ interface Question {
 interface QuizBuilderPageProps {
   quizId: string;
   onBack: () => void;
+  onSave?: (quizData: { title: string; questions: Question[] }) => void;
 }
 
-export function QuizBuilderPage({ quizId, onBack }: QuizBuilderPageProps) {
+export function QuizBuilderPage({ quizId, onBack, onSave }: QuizBuilderPageProps) {
   const [quizTitle, setQuizTitle] = useState(
     quizId === 'new' ? 'Untitled Quiz' : 'Introduction Knowledge Check'
   );
@@ -80,16 +83,31 @@ export function QuizBuilderPage({ quizId, onBack }: QuizBuilderPageProps) {
               />
             </div>
 
-            <motion.button
-              onClick={() => setShowRewardModal(true)}
-              className="flex items-center gap-2 px-6 py-2.5 bg-[#F5AE35] text-white rounded-full hover:bg-[#e09d25] transition-colors shadow-lg"
-              whileHover={{ scale: 1.05, boxShadow: '0 10px 30px rgba(245, 174, 53, 0.3)' }}
-              whileTap={{ scale: 0.98 }}
-              style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}
-            >
-              <Award className="w-5 h-5" />
-              Reward Logic
-            </motion.button>
+            <div className="flex items-center gap-3">
+              <motion.button
+                onClick={() => setShowRewardModal(true)}
+                className="flex items-center gap-2 px-6 py-2.5 bg-[#F5AE35] text-white rounded-full hover:bg-[#e09d25] transition-colors shadow-lg"
+                whileHover={{ scale: 1.05, boxShadow: '0 10px 30px rgba(245, 174, 53, 0.3)' }}
+                whileTap={{ scale: 0.98 }}
+                style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}
+              >
+                <Award className="w-5 h-5" />
+                Reward Logic
+              </motion.button>
+
+              {onSave && (
+                <motion.button
+                  onClick={() => onSave({ title: quizTitle, questions })}
+                  className="flex items-center gap-2 px-6 py-2.5 bg-[#2FBF71] text-white rounded-full hover:bg-[#27a862] transition-colors shadow-lg"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.98 }}
+                  style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}
+                >
+                  <Save className="w-5 h-5" />
+                  Save Quiz
+                </motion.button>
+              )}
+            </div>
           </div>
         </div>
       </header>

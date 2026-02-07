@@ -1,8 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, BookOpen, Clock, MoreVertical, Edit, BarChart3, Copy, Trash2 } from 'lucide-react';
+import { Plus, BookOpen, Clock, MoreVertical, Edit, BarChart3, Trash2, LogOut, User } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { DeleteConfirmationModal } from './modals/DeleteConfirmationModal';
+import { ReportingDashboard } from './ReportingDashboard';
+import { useApp } from '../../context/AppContext';
 
-interface Course {
+interface DashboardCourse {
   id: string;
   title: string;
   tags: string[];
@@ -17,65 +21,33 @@ interface InstructorDashboardCoursesProps {
   onEditCourse: (courseId: string) => void;
 }
 
-const sampleCourses: Course[] = [
-  {
-    id: '1',
-    title: 'Complete React Development Bootcamp',
-    tags: ['Web Development', 'React', 'JavaScript'],
-    isPublished: true,
-    lessons: 24,
-    duration: '4h 30m',
-    thumbnail: 'https://images.unsplash.com/photo-1653387137517-fbc54d488ed8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080'
-  },
-  {
-    id: '2',
-    title: 'UI/UX Design Fundamentals',
-    tags: ['Design', 'Figma', 'User Experience'],
-    isPublished: true,
-    lessons: 18,
-    duration: '3h 15m',
-    thumbnail: 'https://images.unsplash.com/photo-1618761714954-0b8cd0026356?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080'
-  },
-  {
-    id: '3',
-    title: 'Python for Data Science',
-    tags: ['Programming', 'Python', 'Data Science'],
-    isPublished: false,
-    lessons: 30,
-    duration: '5h 45m',
-    thumbnail: 'https://images.unsplash.com/photo-1660616246653-e2c57d1077b9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080'
-  },
-  {
-    id: '4',
-    title: 'Digital Marketing Masterclass',
-    tags: ['Marketing', 'SEO', 'Social Media'],
-    isPublished: true,
-    lessons: 22,
-    duration: '4h 10m',
-    thumbnail: 'https://images.unsplash.com/photo-1599658880436-c61792e70672?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080'
-  },
-  {
-    id: '5',
-    title: 'Mobile App Development with Flutter',
-    tags: ['Mobile', 'Flutter', 'Cross-platform'],
-    isPublished: false,
-    lessons: 28,
-    duration: '5h 20m',
-    thumbnail: 'https://images.unsplash.com/photo-1633250391894-397930e3f5f2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080'
-  },
-  {
-    id: '6',
-    title: 'Advanced JavaScript Concepts',
-    tags: ['JavaScript', 'Web Development', 'Advanced'],
-    isPublished: true,
-    lessons: 12,
-    duration: '2h 30m',
-    thumbnail: 'https://images.unsplash.com/photo-1569693799105-4eb645d89aea?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080'
-  }
-];
-
 export function InstructorDashboardCourses({ onCreateCourse, onEditCourse }: InstructorDashboardCoursesProps) {
+  const { currentUser, getInstructorCourses, deleteCourse, logout } = useApp();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
+  // Map unified Course data to the shape the UI expects
+  const instructorCourses = useMemo<DashboardCourse[]>(() => {
+    if (!currentUser) return [];
+    return getInstructorCourses(currentUser.id).map(c => ({
+      id: c.id,
+      title: c.title,
+      tags: c.tags,
+      isPublished: c.published,
+      lessons: c.lessons.length,
+      duration: c.duration,
+      thumbnail: c.thumbnail,
+    }));
+  }, [currentUser, getInstructorCourses]);
+
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [showReporting, setShowReporting] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [courseToDelete, setCourseToDelete] = useState<DashboardCourse | null>(null);
 
   const handleMenuToggle = (courseId: string) => {
     setOpenMenuId(openMenuId === courseId ? null : courseId);
@@ -88,26 +60,83 @@ export function InstructorDashboardCourses({ onCreateCourse, onEditCourse }: Ins
 
   const handleViewAnalytics = (courseId: string) => {
     setOpenMenuId(null);
-    console.log('View analytics for course:', courseId);
+    setShowReporting(true);
   };
 
-  const handleDuplicate = (courseId: string) => {
+  const handleDeleteClick = (courseId: string) => {
     setOpenMenuId(null);
-    console.log('Duplicate course:', courseId);
+    const course = instructorCourses.find(c => c.id === courseId);
+    if (course) {
+      setCourseToDelete(course);
+      setDeleteModalOpen(true);
+    }
   };
 
-  const handleDelete = (courseId: string) => {
-    setOpenMenuId(null);
-    console.log('Delete course:', courseId);
+  const handleConfirmDelete = () => {
+    if (courseToDelete) {
+      deleteCourse(courseToDelete.id);
+      setDeleteModalOpen(false);
+      setCourseToDelete(null);
+    }
   };
+
+  const handleCancelDelete = () => {
+    setDeleteModalOpen(false);
+    setCourseToDelete(null);
+  };
+
+  // If showing reporting dashboard, render it
+  if (showReporting) {
+    return (
+      <div className="min-h-screen bg-[#F1F2F4]">
+        <div className="max-w-7xl mx-auto px-8 py-8">
+          <button
+            onClick={() => setShowReporting(false)}
+            className="mb-4 flex items-center gap-2 text-[#6E5B6A] hover:bg-[#F1F2F4] px-4 py-2 rounded-lg transition-colors"
+            style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}
+          >
+            ← Back to Courses
+          </button>
+          <ReportingDashboard />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#F1F2F4] py-12">
       <div className="max-w-7xl mx-auto px-8">
+        {/* Top Bar with User Info & Logout */}
+        <div className="flex items-center justify-end gap-4 mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-[#6E5B6A] flex items-center justify-center text-white text-sm font-semibold"
+              style={{ fontFamily: 'Inter, sans-serif' }}
+            >
+              {currentUser?.name?.charAt(0).toUpperCase() || <User className="w-4 h-4" />}
+            </div>
+            <span
+              className="text-sm text-[#202732] font-medium hidden sm:inline"
+              style={{ fontFamily: 'Inter, sans-serif' }}
+            >
+              {currentUser?.name}
+            </span>
+          </div>
+          <motion.button
+            onClick={handleLogout}
+            className="flex items-center gap-2 px-4 py-2 text-sm text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+            style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}
+          >
+            <LogOut className="w-4 h-4" />
+            Logout
+          </motion.button>
+        </div>
+
         {/* Header */}
         <div className="flex items-center justify-between mb-12">
           <div>
-            <motion.h1 
+            <motion.h1
               className="text-[36px] font-bold text-[#202732] mb-2 relative inline-block"
               style={{ fontFamily: 'Caveat, cursive', fontWeight: 700 }}
               initial={{ opacity: 0, y: -20 }}
@@ -116,8 +145,8 @@ export function InstructorDashboardCourses({ onCreateCourse, onEditCourse }: Ins
             >
               Your Courses
               {/* Animated Yellow Brush Underline */}
-              <svg 
-                className="absolute -bottom-2 left-0 w-full h-4" 
+              <svg
+                className="absolute -bottom-2 left-0 w-full h-4"
                 viewBox="0 0 200 12"
                 preserveAspectRatio="none"
               >
@@ -153,7 +182,7 @@ export function InstructorDashboardCourses({ onCreateCourse, onEditCourse }: Ins
 
         {/* Course Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {sampleCourses.map((course, index) => (
+          {instructorCourses.map((course, index) => (
             <motion.div
               key={course.id}
               className="bg-white rounded-2xl border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow"
@@ -164,12 +193,12 @@ export function InstructorDashboardCourses({ onCreateCourse, onEditCourse }: Ins
             >
               {/* Course Thumbnail */}
               <div className="relative h-48 bg-gray-200 overflow-hidden">
-                <img 
-                  src={course.thumbnail} 
+                <img
+                  src={course.thumbnail}
                   alt={course.title}
                   className="w-full h-full object-cover"
                 />
-                
+
                 {/* Three-dot Menu */}
                 <div className="absolute top-4 right-4">
                   <button
@@ -178,7 +207,7 @@ export function InstructorDashboardCourses({ onCreateCourse, onEditCourse }: Ins
                   >
                     <MoreVertical className="w-5 h-5 text-[#202732]" />
                   </button>
-                  
+
                   {/* Dropdown Menu */}
                   <AnimatePresence>
                     {openMenuId === course.id && (
@@ -197,7 +226,7 @@ export function InstructorDashboardCourses({ onCreateCourse, onEditCourse }: Ins
                           <Edit className="w-4 h-4 text-[#6E5B6A]" />
                           <span className="text-[#202732]">Edit Course</span>
                         </button>
-                        
+
                         <button
                           onClick={() => handleViewAnalytics(course.id)}
                           className="w-full px-4 py-2 text-left flex items-center gap-3 hover:bg-gray-50 transition-colors"
@@ -206,20 +235,11 @@ export function InstructorDashboardCourses({ onCreateCourse, onEditCourse }: Ins
                           <BarChart3 className="w-4 h-4 text-[#6E5B6A]" />
                           <span className="text-[#202732]">View Analytics</span>
                         </button>
-                        
-                        <button
-                          onClick={() => handleDuplicate(course.id)}
-                          className="w-full px-4 py-2 text-left flex items-center gap-3 hover:bg-gray-50 transition-colors"
-                          style={{ fontFamily: 'Inter, sans-serif' }}
-                        >
-                          <Copy className="w-4 h-4 text-[#6E5B6A]" />
-                          <span className="text-[#202732]">Duplicate</span>
-                        </button>
-                        
+
                         <div className="border-t border-gray-200 my-1"></div>
-                        
+
                         <button
-                          onClick={() => handleDelete(course.id)}
+                          onClick={() => handleDeleteClick(course.id)}
                           className="w-full px-4 py-2 text-left flex items-center gap-3 hover:bg-red-50 transition-colors"
                           style={{ fontFamily: 'Inter, sans-serif' }}
                         >
@@ -234,14 +254,14 @@ export function InstructorDashboardCourses({ onCreateCourse, onEditCourse }: Ins
                 {/* Published/Draft Badge */}
                 <div className="absolute bottom-4 left-4">
                   {course.isPublished ? (
-                    <span 
+                    <span
                       className="px-3 py-1 bg-[#2FBF71] text-white text-xs font-semibold rounded-full"
                       style={{ fontFamily: 'Inter, sans-serif' }}
                     >
                       Published
                     </span>
                   ) : (
-                    <span 
+                    <span
                       className="px-3 py-1 bg-gray-50 text-[#9CA3AF] border border-[#9CA3AF] text-xs font-semibold rounded-full"
                       style={{ fontFamily: 'Inter, sans-serif' }}
                     >
@@ -253,7 +273,7 @@ export function InstructorDashboardCourses({ onCreateCourse, onEditCourse }: Ins
 
               {/* Card Content */}
               <div className="p-6">
-                <h3 
+                <h3
                   className="text-[20px] font-medium text-[#202732] mb-3 line-clamp-2"
                   style={{ fontFamily: 'Inter, sans-serif' }}
                 >
@@ -281,7 +301,7 @@ export function InstructorDashboardCourses({ onCreateCourse, onEditCourse }: Ins
                       {course.lessons} lessons
                     </span>
                   </div>
-                  
+
                   <div className="flex items-center gap-2">
                     <Clock className="w-4 h-4" />
                     <span className="text-sm" style={{ fontFamily: 'Inter, sans-serif' }}>
@@ -294,8 +314,16 @@ export function InstructorDashboardCourses({ onCreateCourse, onEditCourse }: Ins
           ))}
         </div>
 
+        {/* Delete Confirmation Modal */}
+        <DeleteConfirmationModal
+          isOpen={deleteModalOpen}
+          courseTitle={courseToDelete?.title || ''}
+          onConfirm={handleConfirmDelete}
+          onCancel={handleCancelDelete}
+        />
+
         {/* Empty State (if no courses) */}
-        {sampleCourses.length === 0 && (
+        {instructorCourses.length === 0 && (
           <motion.div
             className="text-center py-20"
             initial={{ opacity: 0 }}
@@ -303,13 +331,13 @@ export function InstructorDashboardCourses({ onCreateCourse, onEditCourse }: Ins
             transition={{ duration: 0.6 }}
           >
             <div className="text-6xl mb-4">📚</div>
-            <h3 
+            <h3
               className="text-2xl font-semibold text-[#202732] mb-2"
               style={{ fontFamily: 'Caveat, cursive' }}
             >
               No courses yet
             </h3>
-            <p 
+            <p
               className="text-gray-600 mb-6"
               style={{ fontFamily: 'Inter, sans-serif' }}
             >

@@ -1,13 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Eye, ArrowLeft, FileText, Settings, HelpCircle, Book } from 'lucide-react';
+import { Eye, ArrowLeft, FileText, Settings, HelpCircle, Book, Save, Check } from 'lucide-react';
 import { BackgroundAnimation } from '../BackgroundAnimation';
 import { ContentTab } from './tabs/ContentTab';
 import { DescriptionTab } from './tabs/DescriptionTab';
 import { OptionsTab } from './tabs/OptionsTab';
 import { QuizTab } from './tabs/QuizTab';
+import { useApp } from '../../context/AppContext';
+import { useToast } from '../ui/toast';
+import type { Lesson, Quiz } from '../../types';
 
 type TabType = 'content' | 'description' | 'options' | 'quiz';
+
+interface EditorLesson {
+  id: string;
+  title: string;
+  type: 'video' | 'document' | 'quiz';
+  duration?: string;
+  order: number;
+}
 
 interface CourseEditorFlowProps {
   courseId: string;
@@ -15,11 +26,121 @@ interface CourseEditorFlowProps {
 }
 
 export function CourseEditorFlow({ courseId, onBack }: CourseEditorFlowProps) {
+  const { createCourse, updateCourse, getCourseById, currentUser } = useApp();
+  const { showToast } = useToast();
+
+  const existingCourse = courseId !== 'new' ? getCourseById(courseId) : undefined;
+
+  // ─── Course state ───
   const [courseTitle, setCourseTitle] = useState(
-    courseId === 'new' ? 'Untitled Course' : 'Introduction to React'
+    existingCourse?.title || (courseId === 'new' ? 'Untitled Course' : 'Introduction to React')
   );
-  const [isPublished, setIsPublished] = useState(false);
+  const [isPublished, setIsPublished] = useState(existingCourse?.published ?? false);
   const [activeTab, setActiveTab] = useState<TabType>('content');
+  const [isSaving, setIsSaving] = useState(false);
+  const [savedCourseId, setSavedCourseId] = useState<string | null>(courseId !== 'new' ? courseId : null);
+
+  // Content tab state
+  const [lessons, setLessons] = useState<EditorLesson[]>(
+    existingCourse?.lessons.map((l, i) => ({
+      id: l.id,
+      title: l.title,
+      type: l.videoUrl ? 'video' as const : l.title.toLowerCase().includes('quiz') ? 'quiz' as const : 'document' as const,
+      duration: l.duration,
+      order: l.order || i + 1,
+    })) ?? [
+      { id: '1', title: 'Introduction to the Course', type: 'video', duration: '5:30', order: 1 },
+      { id: '2', title: 'Setting Up Your Environment', type: 'document', order: 2 },
+      { id: '3', title: 'Your First Component', type: 'video', duration: '12:45', order: 3 },
+      { id: '4', title: 'Quick Knowledge Check', type: 'quiz', order: 4 },
+    ]
+  );
+
+  // Description tab state
+  const [description, setDescription] = useState(existingCourse?.description ?? '');
+  const [category, setCategory] = useState(existingCourse?.category ?? 'Web Development');
+  const [level, setLevel] = useState<string>(existingCourse?.level ?? 'beginner');
+  const [learningObjectives, setLearningObjectives] = useState<string[]>(
+    existingCourse ? ['Build modern web applications', 'Understand core concepts'] : ['Build modern web applications', 'Understand core concepts']
+  );
+
+  // Options tab state
+  const [isPublicCourse, setIsPublicCourse] = useState(existingCourse?.allowGuests ?? true);
+  const [requiresEnrollment, setRequiresEnrollment] = useState(false);
+  const [enableComments, setEnableComments] = useState(true);
+  const [enableCertificate, setEnableCertificate] = useState(true);
+  const [enableDownloads, setEnableDownloads] = useState(false);
+  const [maxStudents, setMaxStudents] = useState('');
+
+  // Quiz tab state
+  const [quizzes, setQuizzes] = useState<Quiz[]>(existingCourse?.quizzes ?? []);
+
+  // ─── Save handler ───
+  const handleSaveCourse = useCallback(() => {
+    if (!currentUser) return;
+
+    setIsSaving(true);
+
+    // Map editor lessons → Course.lessons shape
+    const courseLessons: Lesson[] = lessons.map((l, i) => ({
+      id: l.id.startsWith('lesson-') ? l.id : `lesson-${Date.now()}-${i}`,
+      courseId: savedCourseId || '',
+      title: l.title,
+      description: '',
+      content: '',
+      videoUrl: l.type === 'video' ? `https://example.com/video-${i}` : undefined,
+      duration: l.duration || '10 min',
+      order: l.order,
+    }));
+
+    const normalizedLevel = level.toLowerCase() as 'beginner' | 'intermediate' | 'advanced';
+    const validLevel = ['beginner', 'intermediate', 'advanced'].includes(normalizedLevel)
+      ? normalizedLevel
+      : 'beginner';
+
+    if (savedCourseId && savedCourseId !== 'new') {
+      // Update existing
+      updateCourse(savedCourseId, {
+        title: courseTitle,
+        description,
+        category,
+        level: validLevel,
+        published: isPublished,
+        allowGuests: isPublicCourse,
+        lessons: courseLessons,
+        quizzes,
+      });
+      showToast('Course updated successfully');
+    } else {
+      // Create new
+      const newCourse = createCourse({
+        title: courseTitle,
+        description,
+        thumbnail: 'https://images.unsplash.com/photo-1557324232-b8917d3c3dcb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
+        instructorId: currentUser.id,
+        instructorName: currentUser.name,
+        category,
+        tags: [category],
+        level: validLevel,
+        duration: `${lessons.length * 15} min`,
+        price: 0,
+        rating: 0,
+        reviewsCount: 0,
+        studentsCount: 0,
+        published: isPublished,
+        allowGuests: isPublicCourse,
+        lessons: courseLessons,
+        quizzes,
+      });
+      setSavedCourseId(newCourse.id);
+      showToast('Course created successfully');
+    }
+
+    setTimeout(() => setIsSaving(false), 600);
+  }, [
+    currentUser, courseTitle, description, category, level, isPublished, isPublicCourse,
+    lessons, quizzes, savedCourseId, createCourse, updateCourse, showToast,
+  ]);
 
   const tabs = [
     { id: 'content', label: 'Content', icon: Book },
@@ -93,6 +214,28 @@ export function CourseEditorFlow({ courseId, onBack }: CourseEditorFlowProps) {
                 <Eye className="w-4 h-4" />
                 Preview
               </motion.button>
+
+              {/* Save Button */}
+              <motion.button
+                onClick={handleSaveCourse}
+                disabled={isSaving}
+                className="flex items-center gap-2 px-6 py-2.5 bg-[#2FBF71] text-white rounded-full hover:bg-[#27a862] transition-colors shadow-lg disabled:opacity-60"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.98 }}
+                style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}
+              >
+                {isSaving ? (
+                  <>
+                    <Check className="w-4 h-4" />
+                    Saved!
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4" />
+                    Save Course
+                  </>
+                )}
+              </motion.button>
             </div>
           </div>
 
@@ -154,10 +297,70 @@ export function CourseEditorFlow({ courseId, onBack }: CourseEditorFlowProps) {
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.3, ease: 'easeOut' }}
           >
-            {activeTab === 'content' && <ContentTab />}
-            {activeTab === 'description' && <DescriptionTab />}
-            {activeTab === 'options' && <OptionsTab />}
-            {activeTab === 'quiz' && <QuizTab />}
+            {activeTab === 'content' && (
+              <ContentTab
+                lessons={lessons}
+                onLessonsChange={setLessons}
+                onQuizLessonAdded={(lessonTitle, questionCount) => {
+                  // Auto-create a placeholder quiz with empty question slots
+                  const quizId = `quiz-${Date.now()}`;
+                  const placeholderQuestions: import('../../types').Question[] = Array.from({ length: questionCount }, (_, i) => ({
+                    id: `q-${quizId}-${i + 1}`,
+                    quizId,
+                    question: `Question ${i + 1}`,
+                    options: ['Option A', 'Option B', 'Option C', 'Option D'],
+                    correctAnswer: 0,
+                    points: 10,
+                  }));
+                  const newQuiz: import('../../types').Quiz = {
+                    id: quizId,
+                    courseId: savedCourseId || courseId,
+                    title: lessonTitle,
+                    description: '',
+                    questions: placeholderQuestions,
+                    passingScore: 70,
+                    order: quizzes.length + 1,
+                  };
+                  setQuizzes(prev => [...prev, newQuiz]);
+                  showToast(`Quiz "${lessonTitle}" created with ${questionCount} placeholder questions — edit them in the Quiz tab`);
+                }}
+              />
+            )}
+            {activeTab === 'description' && (
+              <DescriptionTab
+                description={description}
+                onDescriptionChange={setDescription}
+                category={category}
+                onCategoryChange={setCategory}
+                level={level}
+                onLevelChange={setLevel}
+                learningObjectives={learningObjectives}
+                onLearningObjectivesChange={setLearningObjectives}
+              />
+            )}
+            {activeTab === 'options' && (
+              <OptionsTab
+                isPublic={isPublicCourse}
+                onPublicChange={setIsPublicCourse}
+                requiresEnrollment={requiresEnrollment}
+                onRequiresEnrollmentChange={setRequiresEnrollment}
+                enableComments={enableComments}
+                onEnableCommentsChange={setEnableComments}
+                enableCertificate={enableCertificate}
+                onEnableCertificateChange={setEnableCertificate}
+                enableDownloads={enableDownloads}
+                onEnableDownloadsChange={setEnableDownloads}
+                maxStudents={maxStudents}
+                onMaxStudentsChange={setMaxStudents}
+              />
+            )}
+            {activeTab === 'quiz' && (
+              <QuizTab
+                quizzes={quizzes}
+                onQuizzesChange={setQuizzes}
+                courseId={savedCourseId || courseId}
+              />
+            )}
           </motion.div>
         </AnimatePresence>
       </main>

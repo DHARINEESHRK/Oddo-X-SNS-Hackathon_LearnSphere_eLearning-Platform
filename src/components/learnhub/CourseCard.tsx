@@ -2,20 +2,10 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { Star, Clock, Users, TrendingUp, Edit3 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-
-export interface CourseData {
-  id: string;
-  title: string;
-  description: string;
-  image: string;
-  tags: string[];
-  rating: number;
-  reviewCount: number;
-  category: string;
-}
+import { Course } from '../../types';
 
 interface CourseCardProps {
-  course: CourseData;
+  course: Course;
   index: number;
   onClick?: () => void;
 }
@@ -47,7 +37,7 @@ export function CourseCard({ course, index, onClick }: CourseCardProps) {
       {/* Cover Image with Overlay */}
       <div className="relative h-[220px] overflow-hidden">
         <motion.img
-          src={course.image}
+          src={course.thumbnail}
           alt={course.title}
           className="w-full h-full object-cover"
           whileHover={{ scale: 1.05 }}
@@ -124,13 +114,13 @@ export function CourseCard({ course, index, onClick }: CourseCardProps) {
           <div className="flex items-center gap-1.5">
             <Users className="w-4 h-4 text-[#6B5B7B]/60" />
             <span className="text-xs text-[#718096] font-medium" style={{ fontFamily: 'Inter, sans-serif' }}>
-              {course.reviewCount}
+              {course.reviewsCount}
             </span>
           </div>
           <div className="flex items-center gap-1.5">
             <Clock className="w-4 h-4 text-[#6B5B7B]/60" />
             <span className="text-xs text-[#718096] font-medium" style={{ fontFamily: 'Inter, sans-serif' }}>
-              8 weeks
+              {course.duration}
             </span>
           </div>
           <div className="flex items-center gap-1">

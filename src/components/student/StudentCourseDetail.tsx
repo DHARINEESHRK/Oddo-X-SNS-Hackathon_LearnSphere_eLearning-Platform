@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
-  ArrowLeft,
   PlayCircle,
   FileText,
   HelpCircle,
@@ -13,6 +12,9 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import { BackgroundAnimation } from '../BackgroundAnimation';
+import { BackButton } from '../ui/BackButton';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useApp } from '../../context/AppContext';
 
 interface Lesson {
   id: string;
@@ -33,168 +35,98 @@ interface Review {
 }
 
 interface StudentCourseDetailProps {
-  courseId: string;
-  onBack: () => void;
-  onLessonClick: (lessonId: string) => void;
+  courseId?: string;
+  onBack?: () => void;
+  onLessonClick?: (lessonId: string) => void;
 }
 
-export function StudentCourseDetail({
-  courseId,
-  onBack,
-  onLessonClick,
-}: StudentCourseDetailProps) {
+export function StudentCourseDetail(props: StudentCourseDetailProps) {
+  const params = useParams();
+  const navigate = useNavigate();
+  const { getCourseById, getCourseReviews, getUserEnrollments, enrollInCourse, currentUser } = useApp();
+  const courseId = props.courseId || params.courseId || '';
+  const onBack = props.onBack || (() => navigate('/courses'));
+  const onLessonClick = props.onLessonClick || ((lessonId: string) => navigate(`/player/${courseId}/${lessonId}`));
   const [activeTab, setActiveTab] = useState<'overview' | 'reviews'>('overview');
 
-  // Sample course data
-  const course = {
-    title: 'React Fundamentals',
-    description:
-      'Master the fundamentals of React and build modern, interactive web applications with confidence.',
-    instructor: 'Sarah Martinez',
-    totalLessons: 12,
-    completedLessons: 5,
-    progress: 42,
-    rating: 4.8,
-    reviewCount: 324,
-  };
+  // Pull course from unified context
+  const contextCourse = getCourseById(courseId);
 
-  const lessons: Lesson[] = [
-    {
-      id: '1',
-      title: 'Introduction to React',
-      type: 'video',
-      duration: '12 min',
-      isCompleted: true,
-      isLocked: false,
-    },
-    {
-      id: '2',
-      title: 'JSX Fundamentals',
-      type: 'video',
-      duration: '18 min',
-      isCompleted: true,
-      isLocked: false,
-    },
-    {
-      id: '3',
-      title: 'Components Deep Dive',
-      type: 'pdf',
-      duration: '15 min',
-      isCompleted: true,
-      isLocked: false,
-    },
-    {
-      id: '4',
-      title: 'Quiz: React Basics',
-      type: 'quiz',
-      duration: '10 min',
-      isCompleted: true,
-      isLocked: false,
-    },
-    {
-      id: '5',
-      title: 'Props and State',
-      type: 'video',
-      duration: '22 min',
-      isCompleted: true,
-      isLocked: false,
-    },
-    {
-      id: '6',
-      title: 'Event Handling',
-      type: 'video',
-      duration: '16 min',
-      isCompleted: false,
-      isLocked: false,
-    },
-    {
-      id: '7',
-      title: 'Lifecycle Methods',
-      type: 'pdf',
-      duration: '20 min',
-      isCompleted: false,
-      isLocked: false,
-    },
-    {
-      id: '8',
-      title: 'Hooks Introduction',
-      type: 'video',
-      duration: '25 min',
-      isCompleted: false,
-      isLocked: false,
-    },
-    {
-      id: '9',
-      title: 'useState and useEffect',
-      type: 'video',
-      duration: '30 min',
-      isCompleted: false,
-      isLocked: true,
-    },
-    {
-      id: '10',
-      title: 'Custom Hooks',
-      type: 'video',
-      duration: '20 min',
-      isCompleted: false,
-      isLocked: true,
-    },
-    {
-      id: '11',
-      title: 'Context API',
-      type: 'pdf',
-      duration: '18 min',
-      isCompleted: false,
-      isLocked: true,
-    },
-    {
-      id: '12',
-      title: 'Final Quiz',
-      type: 'quiz',
-      duration: '15 min',
-      isCompleted: false,
-      isLocked: true,
-    },
-  ];
+  // Get enrollment for progress data
+  const enrollment = useMemo(() => {
+    if (!currentUser) return undefined;
+    return getUserEnrollments(currentUser.id).find(e => e.courseId === courseId);
+  }, [currentUser, courseId, getUserEnrollments]);
 
-  const reviews: Review[] = [
-    {
-      id: '1',
-      userName: 'Emily Chen',
-      userAvatar: 'EC',
-      rating: 5,
-      date: 'Feb 3, 2026',
-      comment:
-        'Excellent course! The instructor explains everything clearly and the examples are very practical. Highly recommended for beginners.',
-    },
-    {
-      id: '2',
-      userName: 'Michael Brown',
-      userAvatar: 'MB',
-      rating: 5,
-      date: 'Feb 1, 2026',
-      comment:
-        'Great structure and pacing. I went from zero React knowledge to building my first app in just two weeks!',
-    },
-    {
-      id: '3',
-      userName: 'Sarah Johnson',
-      userAvatar: 'SJ',
-      rating: 4,
-      date: 'Jan 28, 2026',
-      comment:
-        'Very informative course. The only improvement would be to add more advanced topics, but overall fantastic content.',
-    },
-    {
-      id: '4',
-      userName: 'David Lee',
-      userAvatar: 'DL',
-      rating: 5,
-      date: 'Jan 25, 2026',
-      comment:
-        'Perfect for beginners! The step-by-step approach made learning React much less intimidating.',
-    },
-  ];
+  // Auto-enroll learner when they visit a course detail page
+  React.useEffect(() => {
+    if (currentUser && contextCourse && !enrollment) {
+      enrollInCourse(currentUser.id, courseId);
+    }
+  }, [currentUser, contextCourse, enrollment, enrollInCourse, courseId]);
+
+  // Map to the shape the existing UI expects
+  const course = useMemo(() => {
+    if (!contextCourse) {
+      return {
+        title: 'Course Not Found',
+        description: '',
+        instructor: '',
+        totalLessons: 0,
+        completedLessons: 0,
+        progress: 0,
+        rating: 0,
+        reviewCount: 0,
+      };
+    }
+    const completedCount = enrollment?.completedLessons?.length ?? 0;
+    const totalCount = contextCourse.lessons.length;
+    return {
+      title: contextCourse.title,
+      description: contextCourse.description,
+      instructor: contextCourse.instructorName,
+      totalLessons: totalCount,
+      completedLessons: completedCount,
+      progress: totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0,
+      rating: contextCourse.rating,
+      reviewCount: contextCourse.reviewsCount,
+    };
+  }, [contextCourse, enrollment]);
+
+  // Map lessons to UI shape
+  const lessons: Lesson[] = useMemo(() => {
+    if (!contextCourse) return [];
+    const completedSet = new Set(enrollment?.completedLessons ?? []);
+    let foundFirstIncomplete = false;
+    return contextCourse.lessons.map((l) => {
+      const isCompleted = completedSet.has(l.id);
+      // Lock lessons after the first incomplete one (sequential unlock)
+      const isLocked = !isCompleted && foundFirstIncomplete;
+      if (!isCompleted && !foundFirstIncomplete) foundFirstIncomplete = true;
+      const type: 'video' | 'pdf' | 'quiz' = l.videoUrl ? 'video' : l.title.toLowerCase().includes('quiz') ? 'quiz' : 'pdf';
+      return {
+        id: l.id,
+        title: l.title,
+        type,
+        duration: l.duration,
+        isCompleted,
+        isLocked,
+      };
+    });
+  }, [contextCourse, enrollment]);
+
+  // Map reviews to UI shape
+  const contextReviews = getCourseReviews(courseId);
+  const reviews: Review[] = useMemo(() => {
+    return contextReviews.map(r => ({
+      id: r.id,
+      userName: r.userName,
+      userAvatar: r.userAvatar || r.userName.split(' ').map(n => n[0]).join(''),
+      rating: r.rating,
+      date: new Date(r.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      comment: r.comment,
+    }));
+  }, [contextReviews]);
 
   const tabs = [
     { id: 'overview', label: 'Overview' },
@@ -235,18 +167,7 @@ export function StudentCourseDetail({
       <div className="relative z-10">
         {/* Back Button */}
         <div className="px-6 py-6 max-w-6xl mx-auto">
-          <motion.button
-            onClick={onBack}
-            className="flex items-center gap-2 text-[#6E5B6A] hover:bg-white px-4 py-2 rounded-lg transition-colors"
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            whileHover={{ scale: 1.05, x: -5 }}
-            whileTap={{ scale: 0.98 }}
-            style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}
-          >
-            <ArrowLeft className="w-5 h-5" />
-            Back to Courses
-          </motion.button>
+          <BackButton onClick={onBack} label="Back to Courses" />
         </div>
 
         {/* Course Header */}

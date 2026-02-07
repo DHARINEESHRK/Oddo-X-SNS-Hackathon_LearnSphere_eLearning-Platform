@@ -20,6 +20,7 @@ export function BackgroundAnimation() {
         }}
         style={{
           transformStyle: 'preserve-3d',
+          willChange: 'transform, opacity',
         }}
       >
         <svg
@@ -204,7 +205,7 @@ export function BackgroundAnimation() {
       </motion.div>
 
       {/* Small floating dots/particles */}
-      {[...Array(6)].map((_, i) => (
+      {[...Array(4)].map((_, i) => (
         <motion.div
           key={i}
           className="absolute w-3 h-3 rounded-full"
