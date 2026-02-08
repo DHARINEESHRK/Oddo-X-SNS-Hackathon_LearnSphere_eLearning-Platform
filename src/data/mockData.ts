@@ -128,7 +128,7 @@ export const mockCourses: Course[] = [
               'Home Tool Markup Language',
               'Hyperlinks and Text Markup Language',
             ],
-            correctAnswer: 0,
+            correctAnswers: [0],
             points: 10,
           },
           {
@@ -136,7 +136,7 @@ export const mockCourses: Course[] = [
             quizId: 'quiz-1-1',
             question: 'Which HTML element is used for the largest heading?',
             options: ['<h6>', '<head>', '<h1>', '<heading>'],
-            correctAnswer: 2,
+            correctAnswers: [2],
             points: 10,
           },
         ],

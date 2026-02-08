@@ -15,77 +15,45 @@ import { StudentCourseDetail } from '../student/StudentCourseDetail';
 import { LessonPlayer } from '../student/LessonPlayer';
 import { RewardsPage } from '../student/RewardsPage';
 import { CertificatePage } from '../student/CertificatePage';
+import { ProfilePage } from '../user/ProfilePage';
+import { SettingsPage } from '../user/SettingsPage';
 
 const categories = [
   'All Courses',
   'Web Development',
-  'Data Science',
   'Design',
-  'Business',
-  'Marketing',
-  'Photography',
 ];
 
 const coursesData: CourseData[] = [
   {
-    id: '1',
-    title: 'React Fundamentals',
-    description: 'Master the essentials of React including components, hooks, state management, and modern React patterns for building dynamic web applications.',
+    id: 'course-1',
+    title: 'Web Development Fundamentals',
+    description: 'Learn the basics of HTML, CSS, and JavaScript to build modern websites. Master the foundations of web development.',
     image: 'https://images.unsplash.com/photo-1557324232-b8917d3c3dcb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
-    tags: ['React', 'JavaScript', 'Frontend'],
+    tags: ['HTML', 'CSS', 'JavaScript'],
     rating: 4.8,
-    reviewCount: 1234,
+    reviewCount: 234,
     category: 'Web Development',
   },
   {
-    id: '2',
-    title: 'Python for Data Science',
-    description: 'Learn Python programming and data analysis with pandas, numpy, and visualization libraries to extract insights from complex datasets.',
+    id: 'course-2',
+    title: 'Advanced React Patterns',
+    description: 'Master advanced React patterns including custom hooks, context API, and performance optimization techniques.',
     image: 'https://images.unsplash.com/photo-1660616246653-e2c57d1077b9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
-    tags: ['Python', 'Data Analysis', 'ML'],
+    tags: ['React', 'Hooks', 'Advanced'],
     rating: 4.9,
-    reviewCount: 987,
-    category: 'Data Science',
+    reviewCount: 156,
+    category: 'Web Development',
   },
   {
-    id: '3',
-    title: 'UI/UX Design Masterclass',
-    description: 'Design beautiful and intuitive user interfaces with Figma. Learn design systems, prototyping, and user research methodologies.',
+    id: 'course-3',
+    title: 'UI/UX Design Principles',
+    description: 'Learn the fundamentals of user interface and user experience design. Master design thinking and prototyping.',
     image: 'https://images.unsplash.com/photo-1618761714954-0b8cd0026356?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
-    tags: ['Figma', 'UI/UX', 'Design Systems'],
+    tags: ['Figma', 'UI/UX', 'Design'],
     rating: 4.7,
-    reviewCount: 756,
+    reviewCount: 189,
     category: 'Design',
-  },
-  {
-    id: '4',
-    title: 'Digital Marketing Strategy',
-    description: 'Build effective marketing campaigns across social media, email, and content marketing to grow your brand and reach your target audience.',
-    image: 'https://images.unsplash.com/photo-1547621008-d6d6d2e28e81?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
-    tags: ['SEO', 'Social Media', 'Content'],
-    rating: 4.6,
-    reviewCount: 543,
-    category: 'Marketing',
-  },
-  {
-    id: '5',
-    title: 'Business Analytics',
-    description: 'Transform data into actionable business insights using analytics tools, statistical methods, and data-driven decision making frameworks.',
-    image: 'https://images.unsplash.com/photo-1737703638422-2cfa152cdcb7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
-    tags: ['Analytics', 'Excel', 'Data Viz'],
-    rating: 4.5,
-    reviewCount: 432,
-    category: 'Business',
-  },
-  {
-    id: '6',
-    title: 'Photography Basics',
-    description: 'Master camera settings, composition techniques, lighting fundamentals, and post-processing to capture stunning professional photographs.',
-    image: 'https://images.unsplash.com/photo-1714196543225-accf8ea205a8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
-    tags: ['Camera', 'Composition', 'Editing'],
-    rating: 4.8,
-    reviewCount: 612,
-    category: 'Photography',
   },
 ];
 
@@ -95,10 +63,13 @@ export function CoursesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showEditor, setShowEditor] = useState(false);
   const [showInstructorDashboard, setShowInstructorDashboard] = useState(false);
+  const [selectedCourseForEdit, setSelectedCourseForEdit] = useState<string | null>(null);
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
   const [showRewards, setShowRewards] = useState(false);
   const [showCertificate, setShowCertificate] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const { currentUser, getCourseById, completeCourse, getUserEnrollments } = useApp();
 
   const isInstructor = currentUser?.role === 'instructor';
@@ -185,7 +156,15 @@ export function CoursesPage() {
 
   // If showing instructor dashboard, render it
   if (showInstructorDashboard) {
-    return <InstructorCoursesPage />;
+    return (
+      <InstructorCoursesPage
+        onBack={() => {
+          setShowInstructorDashboard(false);
+          setSelectedCourseForEdit(null);
+        }}
+        initialCourseId={selectedCourseForEdit}
+      />
+    );
   }
 
   // If showing editor, render editor
@@ -223,6 +202,16 @@ export function CoursesPage() {
     );
   }
 
+  // If showing profile, render profile
+  if (showProfile) {
+    return <ProfilePage onBack={() => setShowProfile(false)} />;
+  }
+
+  // If showing settings, render settings
+  if (showSettings) {
+    return <SettingsPage onBack={() => setShowSettings(false)} />;
+  }
+
   // === MAIN COURSES PAGE RENDER ===
 
   return (
@@ -230,7 +219,12 @@ export function CoursesPage() {
       <LearnHubBackgroundAnimations />
       <FloatingElements />
 
-      <LearnHubNavigation onShowRewards={() => setShowRewards(true)} />
+      <LearnHubNavigation
+        onShowRewards={() => setShowRewards(true)}
+        onShowYourCourses={() => setShowInstructorDashboard(true)}
+        onShowProfile={() => setShowProfile(true)}
+        onShowSettings={() => setShowSettings(true)}
+      />
 
       <main className="max-w-7xl mx-auto px-6 py-12 relative z-10">
         {/* Page Header */}
@@ -418,7 +412,14 @@ export function CoursesPage() {
               key={course.id}
               course={course}
               index={index}
-              onClick={() => setSelectedCourseId(course.id)}
+              onClick={() => {
+                if (isInstructor) {
+                  setSelectedCourseForEdit(course.id);
+                  setShowInstructorDashboard(true);
+                } else {
+                  setSelectedCourseId(course.id);
+                }
+              }}
             />
           ))}
         </div>

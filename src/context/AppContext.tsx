@@ -45,6 +45,7 @@ interface AppContextType {
   users: User[];
   getAllUsers: () => User[];
   updateUserRole: (userId: string, role: UserRole) => void;
+  updateUser: (user: User) => void;
 
   // Points and badges
   addPoints: (userId: string, points: number) => void;
@@ -327,6 +328,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setUsers(users.map(u => u.id === userId ? { ...u, role } : u));
   };
 
+  const updateUser = (user: User) => {
+    setUsers(users.map(u => u.id === user.id ? user : u));
+    if (currentUser?.id === user.id) {
+      setCurrentUser(user);
+    }
+  };
+
   // Points and badges
   // Points and badges
   const addPoints = (userId: string, points: number) => {
@@ -479,6 +487,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     users,
     getAllUsers,
     updateUserRole,
+    updateUser,
     addPoints,
     newlyEarnedBadge,
     clearNewlyEarnedBadge,

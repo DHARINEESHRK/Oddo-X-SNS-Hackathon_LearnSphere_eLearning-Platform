@@ -1,20 +1,81 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Upload, FileText, Paperclip, Image } from 'lucide-react';
 
 type LessonTab = 'content' | 'description' | 'attachments';
 
+export interface LessonData {
+  title: string;
+  type: 'video' | 'document' | 'image' | 'quiz';
+  videoFile?: File | null;
+  imageFile?: File | null;
+  attachments?: File[];
+  allowDownload?: boolean;
+}
+
 interface LessonEditorModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSave: (data: LessonData) => void;
   lessonId: string | null;
+  initialData?: Partial<LessonData>;
 }
 
-export function LessonEditorModal({ isOpen, onClose, lessonId }: LessonEditorModalProps) {
+export function LessonEditorModal({ isOpen, onClose, onSave, lessonId, initialData }: LessonEditorModalProps) {
   const [activeTab, setActiveTab] = useState<LessonTab>('content');
   const [lessonTitle, setLessonTitle] = useState('');
   const [lessonType, setLessonType] = useState<'video' | 'document' | 'image' | 'quiz'>('video');
   const [allowDownload, setAllowDownload] = useState(true);
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [attachments, setAttachments] = useState<File[]>([]);
+
+  useEffect(() => {
+    if (isOpen) {
+      if (initialData) {
+        setLessonTitle(initialData.title || '');
+        setLessonType(initialData.type || 'video');
+        setAllowDownload(initialData.allowDownload ?? true);
+        // Files cannot be restored from generic object easily without backend URL
+        // But if we had them in memory (state), we could restore.
+        // For now, title/type restoration is key.
+      } else {
+        // Reset for new lesson
+        setLessonTitle('');
+        setLessonType('video');
+        setAllowDownload(true);
+        setVideoFile(null);
+        setImageFile(null);
+        setAttachments([]);
+        setActiveTab('content');
+      }
+    }
+  }, [isOpen, initialData]);
+
+  const handleVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setVideoFile(file);
+    }
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+    }
+  };
+
+  const handleAttachmentUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files) {
+      setAttachments(prev => [...prev, ...Array.from(files)]);
+    }
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachments(prev => prev.filter((_, i) => i !== index));
+  };
 
   const tabs = [
     { id: 'content', label: 'Content' },
@@ -23,6 +84,18 @@ export function LessonEditorModal({ isOpen, onClose, lessonId }: LessonEditorMod
   ] as const;
 
   if (!isOpen) return null;
+
+  const handleSave = () => {
+    onSave({
+      title: lessonTitle,
+      type: lessonType,
+      videoFile,
+      imageFile,
+      attachments,
+      allowDownload
+    });
+    onClose();
+  };
 
   return (
     <AnimatePresence>
@@ -160,21 +233,49 @@ export function LessonEditorModal({ isOpen, onClose, lessonId }: LessonEditorMod
                             >
                               Video URL or Upload
                             </label>
-                            <div className="border-2 border-dashed border-gray-300 hover:border-[#6E5B6A] rounded-lg p-8 text-center cursor-pointer transition-colors">
-                              <Upload className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                              <p
-                                className="text-gray-600 mb-1"
-                                style={{ fontFamily: 'Inter, sans-serif' }}
-                              >
-                                Click to upload video or paste URL
-                              </p>
-                              <p
-                                className="text-xs text-gray-500"
-                                style={{ fontFamily: 'Inter, sans-serif' }}
-                              >
-                                Supports MP4, MOV, or YouTube/Vimeo links
-                              </p>
-                            </div>
+                            <input
+                              type="file"
+                              accept="video/*"
+                              onChange={handleVideoUpload}
+                              className="hidden"
+                              id="lesson-video-upload"
+                            />
+                            <label
+                              htmlFor="lesson-video-upload"
+                              className="block border-2 border-dashed border-gray-300 hover:border-[#6E5B6A] rounded-lg p-8 text-center cursor-pointer transition-colors"
+                            >
+                              {videoFile ? (
+                                <div className="flex items-center justify-center gap-3">
+                                  <div className="bg-[#6E5B6A] text-white p-3 rounded-lg">
+                                    <Upload className="w-6 h-6" />
+                                  </div>
+                                  <div className="text-left">
+                                    <p className="text-sm font-medium text-[#202732]" style={{ fontFamily: 'Inter, sans-serif' }}>
+                                      {videoFile.name}
+                                    </p>
+                                    <p className="text-xs text-gray-500" style={{ fontFamily: 'Inter, sans-serif' }}>
+                                      Click to change video
+                                    </p>
+                                  </div>
+                                </div>
+                              ) : (
+                                <>
+                                  <Upload className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                                  <p
+                                    className="text-gray-600 mb-1"
+                                    style={{ fontFamily: 'Inter, sans-serif' }}
+                                  >
+                                    Click to upload video or paste URL
+                                  </p>
+                                  <p
+                                    className="text-xs text-gray-500"
+                                    style={{ fontFamily: 'Inter, sans-serif' }}
+                                  >
+                                    Supports MP4, MOV, or YouTube/Vimeo links
+                                  </p>
+                                </>
+                              )}
+                            </label>
                           </div>
                         )}
 
@@ -187,21 +288,49 @@ export function LessonEditorModal({ isOpen, onClose, lessonId }: LessonEditorMod
                             >
                               Image Upload
                             </label>
-                            <div className="border-2 border-dashed border-gray-300 hover:border-[#6E5B6A] rounded-lg p-8 text-center cursor-pointer transition-colors">
-                              <Image className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                              <p
-                                className="text-gray-600 mb-1"
-                                style={{ fontFamily: 'Inter, sans-serif' }}
-                              >
-                                Click to upload image or paste URL
-                              </p>
-                              <p
-                                className="text-xs text-gray-500"
-                                style={{ fontFamily: 'Inter, sans-serif' }}
-                              >
-                                Supports JPG, PNG, GIF, or image URLs
-                              </p>
-                            </div>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleImageUpload}
+                              className="hidden"
+                              id="lesson-image-upload"
+                            />
+                            <label
+                              htmlFor="lesson-image-upload"
+                              className="block border-2 border-dashed border-gray-300 hover:border-[#6E5B6A] rounded-lg p-8 text-center cursor-pointer transition-colors"
+                            >
+                              {imageFile ? (
+                                <div className="flex items-center justify-center gap-3">
+                                  <div className="bg-[#F5AE35] text-white p-3 rounded-lg">
+                                    <Image className="w-6 h-6" />
+                                  </div>
+                                  <div className="text-left">
+                                    <p className="text-sm font-medium text-[#202732]" style={{ fontFamily: 'Inter, sans-serif' }}>
+                                      {imageFile.name}
+                                    </p>
+                                    <p className="text-xs text-gray-500" style={{ fontFamily: 'Inter, sans-serif' }}>
+                                      Click to change image
+                                    </p>
+                                  </div>
+                                </div>
+                              ) : (
+                                <>
+                                  <Image className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                                  <p
+                                    className="text-gray-600 mb-1"
+                                    style={{ fontFamily: 'Inter, sans-serif' }}
+                                  >
+                                    Click to upload image or paste URL
+                                  </p>
+                                  <p
+                                    className="text-xs text-gray-500"
+                                    style={{ fontFamily: 'Inter, sans-serif' }}
+                                  >
+                                    Supports JPG, PNG, GIF, or image URLs
+                                  </p>
+                                </>
+                              )}
+                            </label>
                           </div>
                         )}
                       </div>
@@ -231,7 +360,17 @@ export function LessonEditorModal({ isOpen, onClose, lessonId }: LessonEditorMod
                         >
                           Resource Files
                         </label>
-                        <div className="border-2 border-dashed border-gray-300 hover:border-[#6E5B6A] rounded-lg p-8 text-center cursor-pointer transition-colors">
+                        <input
+                          type="file"
+                          multiple
+                          onChange={handleAttachmentUpload}
+                          className="hidden"
+                          id="lesson-attachments-upload"
+                        />
+                        <label
+                          htmlFor="lesson-attachments-upload"
+                          className="block border-2 border-dashed border-gray-300 hover:border-[#6E5B6A] rounded-lg p-8 text-center cursor-pointer transition-colors"
+                        >
                           <Paperclip className="w-12 h-12 text-gray-400 mx-auto mb-3" />
                           <p
                             className="text-gray-600 mb-1"
@@ -245,7 +384,29 @@ export function LessonEditorModal({ isOpen, onClose, lessonId }: LessonEditorMod
                           >
                             PDFs, slides, code files, etc.
                           </p>
-                        </div>
+                        </label>
+
+                        {/* Uploaded Attachments List */}
+                        {attachments.length > 0 && (
+                          <div className="mt-4 space-y-2">
+                            {attachments.map((file, index) => (
+                              <div key={index} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
+                                <div className="flex items-center gap-3">
+                                  <FileText className="w-5 h-5 text-[#6E5B6A]" />
+                                  <span className="text-sm text-[#202732]" style={{ fontFamily: 'Inter, sans-serif' }}>
+                                    {file.name}
+                                  </span>
+                                </div>
+                                <button
+                                  onClick={() => removeAttachment(index)}
+                                  className="text-red-500 hover:bg-red-50 p-1 rounded transition-colors"
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
 
                         {/* Download Permission Toggle */}
                         <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
@@ -295,7 +456,7 @@ export function LessonEditorModal({ isOpen, onClose, lessonId }: LessonEditorMod
                   Cancel
                 </motion.button>
                 <motion.button
-                  onClick={onClose}
+                  onClick={handleSave}
                   className="px-6 py-2.5 bg-[#6E5B6A] text-white rounded-full hover:bg-[#5a4a56] transition-colors shadow-lg"
                   whileHover={{ scale: 1.05, boxShadow: '0 10px 30px rgba(110, 91, 106, 0.3)' }}
                   whileTap={{ scale: 0.98 }}

@@ -2,8 +2,6 @@ import React from 'react';
 import { motion } from 'motion/react';
 
 export function Navigation({ onSignIn }: { onSignIn: () => void }) {
-  const menuItems = ['Courses', 'Categories', 'Community', 'Pricing', 'Help'];
-
   return (
     <nav className="bg-white border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-6 py-4">
@@ -11,24 +9,8 @@ export function Navigation({ onSignIn }: { onSignIn: () => void }) {
           {/* Logo */}
           <div className="flex items-center">
             <span className="text-2xl text-[#6E5B6A]" style={{ fontFamily: 'Brush Script MT, cursive' }}>
-              LearnHub
+              Learn Sphere
             </span>
-          </div>
-
-          {/* Menu Items */}
-          <div className="hidden md:flex items-center gap-8">
-            {menuItems.map((item) => (
-              <motion.a
-                key={item}
-                href="#"
-                className="text-[#202732] relative group"
-                whileHover={{ scale: 1.02 }}
-                transition={{ duration: 0.2 }}
-              >
-                {item}
-                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-[#6E5B6A] group-hover:w-full transition-all duration-300 ease-out" />
-              </motion.a>
-            ))}
           </div>
 
           {/* Right Side Actions */}

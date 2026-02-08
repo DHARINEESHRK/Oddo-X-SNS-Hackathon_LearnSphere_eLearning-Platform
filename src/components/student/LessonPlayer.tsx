@@ -58,7 +58,12 @@ export function LessonPlayer({
     return true;
   });
 
-  const { currentUser, newlyEarnedBadge, clearNewlyEarnedBadge } = useApp() || { currentUser: { id: 'guest' }, newlyEarnedBadge: null, clearNewlyEarnedBadge: () => { } }; // Fallback
+  const { currentUser, newlyEarnedBadge, clearNewlyEarnedBadge, getCourseById } = useApp() || {
+    currentUser: { id: 'guest' },
+    newlyEarnedBadge: null,
+    clearNewlyEarnedBadge: () => { },
+    getCourseById: () => null
+  };
 
   const toggleSidebar = () => {
     const newState = !isSidebarOpen;
@@ -78,67 +83,53 @@ export function LessonPlayer({
     return () => window.removeEventListener('keydown', handleEsc);
   }, [onBack, showPointsPopup]);
 
-  // Sample lesson data
-  // Sample lesson data (Mock Quiz)
-  const lesson = {
-    id: lessonId,
-    title: 'React Fundamentals Quiz',
-    courseTitle: 'React Fundamentals',
-    type: 'quiz',
-    videoUrl: null,
+  // Get actual course and lesson data
+  const course = getCourseById(courseId);
+  const actualLesson = course?.lessons?.find(l => l.id === lessonId);
+
+  // Build lesson object - use actual data or fallback to sample
+  type LessonType = 'video' | 'image' | 'quiz' | 'document';
+
+  const lesson: {
+    id: string;
+    title: string;
+    courseTitle: string;
+    type: LessonType;
+    videoUrl: string | null;
+    pdfUrl: string | null;
+    duration: string;
+    description: string;
+    allowDownload: boolean;
+    questions: unknown[];
+    passingScore: number;
+    rewardPoints: { firstAttempt: number; secondAttempt: number; thirdAttempt: number; fourthAttempt: number };
+  } = actualLesson ? {
+    id: actualLesson.id,
+    title: actualLesson.title,
+    courseTitle: course?.title || 'Course',
+    type: 'video',
+    videoUrl: actualLesson.videoUrl || null,
     pdfUrl: null,
-    duration: '10 min',
-    description: 'Test your knowledge of React basics, components, and virtual DOM concepts.',
+    duration: actualLesson.duration || '10 min',
+    description: actualLesson.description || actualLesson.content || 'Learn the concepts covered in this lesson.',
     allowDownload: false,
-    questions: [
-      {
-        id: 'q1',
-        quizId: 'quiz-1',
-        question: 'What is the virtual DOM in React?',
-        options: [
-          'A direct copy of the HTML DOM',
-          'A lightweight copy of the DOM kept in memory',
-          'A browser extension',
-          'A database for React'
-        ],
-        correctAnswers: [1],
-        points: 10
-      },
-      {
-        id: 'q2',
-        quizId: 'quiz-1',
-        question: 'Which method is used to render a React element into the DOM?',
-        options: [
-          'ReactDOM.render()',
-          'React.mount()',
-          'ReactDOM.createRoot()',
-          'React.render()'
-        ],
-        correctAnswers: [0, 2], // accepting both old and new way for demo
-        points: 10
-      },
-      {
-        id: 'q3',
-        quizId: 'quiz-1',
-        question: 'What is a React Component?',
-        options: [
-          'A JavaScript function or class that returns UI',
-          'A CSS file',
-          'A JSON object',
-          'A database schema'
-        ],
-        correctAnswers: [0],
-        points: 10
-      }
-    ],
-    passingScore: 70,
-    rewardPoints: {
-      firstAttempt: 100,
-      secondAttempt: 75,
-      thirdAttempt: 50,
-      fourthAttempt: 25
-    }
-  };
+    questions: [],
+    passingScore: 0,
+    rewardPoints: { firstAttempt: 50, secondAttempt: 25, thirdAttempt: 10, fourthAttempt: 5 }
+  } : {
+      id: lessonId,
+      title: 'Introduction to the Course',
+      courseTitle: course?.title || 'Sample Course',
+      type: 'video',
+      videoUrl: null,
+      pdfUrl: null,
+      duration: '10 min',
+      description: 'Welcome to this course! In this lesson, you will learn the foundational concepts.',
+      allowDownload: false,
+      questions: [],
+      passingScore: 0,
+      rewardPoints: { firstAttempt: 50, secondAttempt: 25, thirdAttempt: 10, fourthAttempt: 5 }
+    };
 
   const handleMarkComplete = () => {
     setIsCompleted(true);

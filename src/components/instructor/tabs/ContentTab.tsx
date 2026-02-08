@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Plus, Video, FileText, HelpCircle, MoreVertical, GripVertical, Edit, Trash2, Image } from 'lucide-react';
-import { LessonEditorModal } from '../modals/LessonEditorModal';
+import { LessonEditorModal, LessonData } from '../modals/LessonEditorModal';
 import { QuizBuilderModal } from '../modals/QuizBuilderModal';
 import { Quiz } from '../../../types';
 
@@ -11,6 +11,11 @@ interface Lesson {
   type: 'video' | 'document' | 'image' | 'quiz';
   duration?: string;
   order: number;
+  // Extended properties for persistence
+  videoFile?: File | null;
+  imageFile?: File | null;
+  attachments?: File[];
+  allowDownload?: boolean;
 }
 
 const mockLessons: Lesson[] = [
@@ -48,8 +53,38 @@ const mockQuizzes: Quiz[] = [
   }
 ];
 
-export function ContentTab() {
-  const [lessons, setLessons] = useState<Lesson[]>(mockLessons);
+export function ContentTab({ courseId }: { courseId?: string }) {
+  const [lessons, setLessons] = useState<Lesson[]>(() => {
+    if (courseId) {
+      const saved = localStorage.getItem(`course-content-${courseId}`);
+      if (saved) return JSON.parse(saved);
+    }
+    return mockLessons;
+  });
+
+  // Persist lessons whenever they change
+  React.useEffect(() => {
+    if (courseId) {
+      localStorage.setItem(`course-content-${courseId}`, JSON.stringify(lessons));
+    }
+  }, [lessons, courseId]);
+
+  const handleLessonSave = (data: LessonData) => {
+    if (editingLessonId) {
+      setLessons(prev => prev.map(l => l.id === editingLessonId ? { ...l, ...data } : l));
+    } else {
+      const newLesson: Lesson = {
+        id: Date.now().toString(),
+        title: data.title,
+        type: data.type,
+        duration: '5:00', // Default duration
+        order: lessons.length + 1
+      };
+      setLessons(prev => [...prev, newLesson]);
+    }
+    setIsAddingLesson(false);
+    setEditingLessonId(null);
+  };
   const [isAddingLesson, setIsAddingLesson] = useState(false);
   const [editingLessonId, setEditingLessonId] = useState<string | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
@@ -57,7 +92,20 @@ export function ContentTab() {
   // Quiz builder state
   const [quizBuilderOpen, setQuizBuilderOpen] = useState(false);
   const [editingQuiz, setEditingQuiz] = useState<Quiz | null>(null);
-  const [quizzes, setQuizzes] = useState<Quiz[]>(mockQuizzes);
+  const [quizzes, setQuizzes] = useState<Quiz[]>(() => {
+    if (courseId) {
+      const saved = localStorage.getItem(`course-quizzes-${courseId}`);
+      if (saved) return JSON.parse(saved);
+    }
+    return mockQuizzes;
+  });
+
+  // Persist quizzes
+  React.useEffect(() => {
+    if (courseId) {
+      localStorage.setItem(`course-quizzes-${courseId}`, JSON.stringify(quizzes));
+    }
+  }, [quizzes, courseId]);
 
   const getLessonIcon = (type: Lesson['type']) => {
     switch (type) {
@@ -243,7 +291,9 @@ export function ContentTab() {
           setIsAddingLesson(false);
           setEditingLessonId(null);
         }}
+        onSave={handleLessonSave}
         lessonId={editingLessonId}
+        initialData={editingLessonId ? lessons.find(l => l.id === editingLessonId) : undefined}
       />
 
       {/* Quiz Builder Modal */}

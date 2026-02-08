@@ -14,11 +14,16 @@ interface CourseEditorFlowProps {
   onBack: () => void;
 }
 
+import { useApp } from '../../context/AppContext';
+
 export function CourseEditorFlow({ courseId, onBack }: CourseEditorFlowProps) {
+  const { getCourseById } = useApp();
+  const course = courseId === 'new' ? null : getCourseById(courseId);
+
   const [courseTitle, setCourseTitle] = useState(
-    courseId === 'new' ? 'Untitled Course' : 'Introduction to React'
+    course ? course.title : (courseId === 'new' ? 'Untitled Course' : 'Course Not Found')
   );
-  const [isPublished, setIsPublished] = useState(false);
+  const [isPublished, setIsPublished] = useState(course?.published || false);
   const [activeTab, setActiveTab] = useState<TabType>('content');
 
   const tabs = [
@@ -71,9 +76,8 @@ export function CourseEditorFlow({ courseId, onBack }: CourseEditorFlowProps) {
                 </span>
                 <button
                   onClick={() => setIsPublished(!isPublished)}
-                  className={`w-12 h-6 rounded-full transition-colors relative ${
-                    isPublished ? 'bg-[#6E5B6A]' : 'bg-gray-300'
-                  }`}
+                  className={`w-12 h-6 rounded-full transition-colors relative ${isPublished ? 'bg-[#6E5B6A]' : 'bg-gray-300'
+                    }`}
                 >
                   <motion.div
                     className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow"
@@ -102,9 +106,8 @@ export function CourseEditorFlow({ courseId, onBack }: CourseEditorFlowProps) {
               <motion.button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 pb-3 text-sm font-medium relative transition-colors ${
-                  activeTab === tab.id ? 'text-[#6E5B6A]' : 'text-gray-500 hover:text-[#6E5B6A]'
-                }`}
+                className={`flex items-center gap-2 pb-3 text-sm font-medium relative transition-colors ${activeTab === tab.id ? 'text-[#6E5B6A]' : 'text-gray-500 hover:text-[#6E5B6A]'
+                  }`}
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
@@ -154,7 +157,7 @@ export function CourseEditorFlow({ courseId, onBack }: CourseEditorFlowProps) {
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.3, ease: 'easeOut' }}
           >
-            {activeTab === 'content' && <ContentTab />}
+            {activeTab === 'content' && <ContentTab courseId={courseId} />}
             {activeTab === 'description' && <DescriptionTab />}
             {activeTab === 'options' && <OptionsTab />}
             {activeTab === 'quiz' && <QuizTab />}

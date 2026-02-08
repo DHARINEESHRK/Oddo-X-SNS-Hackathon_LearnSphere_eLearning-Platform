@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, BookOpen, Clock, MoreVertical, Edit, BarChart3, Copy, Trash2, LayoutGrid, List, Eye, UserPlus, Mail } from 'lucide-react';
+import { Plus, BookOpen, Clock, MoreVertical, Edit, BarChart3, Copy, Trash2, LayoutGrid, List, Eye, UserPlus, Mail, ArrowLeft } from 'lucide-react';
 import { DeleteConfirmationModal } from './modals/DeleteConfirmationModal';
 import { InviteAttendeesModal } from './modals/InviteAttendeesModal';
 import { ContactAttendeesModal } from './modals/ContactAttendeesModal';
@@ -25,14 +25,15 @@ interface Course {
 interface InstructorDashboardCoursesProps {
   onCreateCourse: () => void;
   onEditCourse: (courseId: string) => void;
+  onBack?: () => void;
 }
 
 
 const sampleCourses: Course[] = [
   {
-    id: '1',
-    title: 'Complete React Development Bootcamp',
-    tags: ['Web Development', 'React', 'JavaScript'],
+    id: 'course-1',
+    title: 'Web Development Fundamentals',
+    tags: ['Web Development', 'HTML', 'JavaScript'],
     status: 'published',
     isPublished: true,
     lessons: 24,
@@ -42,9 +43,9 @@ const sampleCourses: Course[] = [
     totalDuration: 270
   },
   {
-    id: '2',
-    title: 'UI/UX Design Fundamentals',
-    tags: ['Design', 'Figma', 'User Experience'],
+    id: 'course-2',
+    title: 'Advanced React Patterns',
+    tags: ['React', 'Hooks', 'Advanced'],
     status: 'published',
     isPublished: true,
     lessons: 18,
@@ -54,19 +55,19 @@ const sampleCourses: Course[] = [
     totalDuration: 195
   },
   {
-    id: '3',
-    title: 'Python for Data Science',
-    tags: ['Programming', 'Python', 'Data Science'],
-    status: 'draft',
-    isPublished: false,
-    lessons: 30,
-    duration: '5h 45m',
-    thumbnail: 'https://images.unsplash.com/photo-1660616246653-e2c57d1077b9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
-    viewCount: 145,
-    totalDuration: 345
+    id: 'course-3',
+    title: 'UI/UX Design Principles',
+    tags: ['Design', 'Figma', 'UX'],
+    status: 'published',
+    isPublished: true,
+    lessons: 12,
+    duration: '2h 45m',
+    thumbnail: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
+    viewCount: 1250,
+    totalDuration: 165
   },
   {
-    id: '4',
+    id: 'course-4',
     title: 'Digital Marketing Masterclass',
     tags: ['Marketing', 'SEO', 'Social Media'],
     status: 'published',
@@ -103,7 +104,7 @@ const sampleCourses: Course[] = [
   }
 ];
 
-export function InstructorDashboardCourses({ onCreateCourse, onEditCourse }: InstructorDashboardCoursesProps) {
+export function InstructorDashboardCourses({ onCreateCourse, onEditCourse, onBack }: InstructorDashboardCoursesProps) {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [courses, setCourses] = useState<Course[]>(sampleCourses);
   const [showReporting, setShowReporting] = useState(false);
@@ -137,20 +138,6 @@ export function InstructorDashboardCourses({ onCreateCourse, onEditCourse }: Ins
   const handleViewAnalytics = (courseId: string) => {
     setOpenMenuId(null);
     setShowReporting(true);
-  };
-
-  const handleDuplicate = (courseId: string) => {
-    setOpenMenuId(null);
-    const courseToDuplicate = courses.find(c => c.id === courseId);
-    if (courseToDuplicate) {
-      const newCourse: Course = {
-        ...courseToDuplicate,
-        id: `course-${Date.now()}`,
-        title: `${courseToDuplicate.title} (Copy)`,
-        isPublished: false,
-      };
-      setCourses([...courses, newCourse]);
-    }
   };
 
   const handleDeleteClick = (courseId: string) => {
@@ -256,6 +243,20 @@ export function InstructorDashboardCourses({ onCreateCourse, onEditCourse }: Ins
   return (
     <div className="min-h-screen bg-[#F1F2F4] py-12">
       <div className="max-w-7xl mx-auto px-8">
+        {/* Back Button */}
+        {onBack && (
+          <motion.button
+            onClick={onBack}
+            className="flex items-center gap-2 text-[#6E5B6A] hover:bg-white px-4 py-2 rounded-lg transition-colors mb-4"
+            whileHover={{ scale: 1.05, x: -5 }}
+            whileTap={{ scale: 0.98 }}
+            style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}
+          >
+            <ArrowLeft className="w-5 h-5" />
+            Back to Courses
+          </motion.button>
+        )}
+
         {/* Header */}
         <div className="flex items-center justify-between mb-12">
           <div>
@@ -424,12 +425,12 @@ export function InstructorDashboardCourses({ onCreateCourse, onEditCourse }: Ins
                           <span className="text-gray-700">View Analytics</span>
                         </button>
                         <button
-                          onClick={() => handleDuplicate(course.id)}
-                          className="w-full px-4 py-2 text-left flex items-center gap-3 hover:bg-gray-50 transition-colors"
+                          onClick={() => handleDeleteClick(course.id)}
+                          className="w-full px-4 py-2 text-left flex items-center gap-3 hover:bg-red-50 transition-colors"
                           style={{ fontFamily: 'Inter, sans-serif' }}
                         >
-                          <Copy className="w-4 h-4 text-[#6E5B6A]" />
-                          <span className="text-gray-700">Duplicate</span>
+                          <Trash2 className="w-4 h-4 text-red-500" />
+                          <span className="text-red-600">Delete</span>
                         </button>
                         <button
                           onClick={() => handleInviteClick(course.id)}
@@ -553,12 +554,12 @@ export function InstructorDashboardCourses({ onCreateCourse, onEditCourse }: Ins
                           <span className="text-gray-700">View Analytics</span>
                         </button>
                         <button
-                          onClick={() => handleDuplicate(course.id)}
-                          className="w-full px-4 py-2 text-left flex items-center gap-3 hover:bg-gray-50 transition-colors"
+                          onClick={() => handleDeleteClick(course.id)}
+                          className="w-full px-4 py-2 text-left flex items-center gap-3 hover:bg-red-50 transition-colors"
                           style={{ fontFamily: 'Inter, sans-serif' }}
                         >
-                          <Copy className="w-4 h-4 text-[#6E5B6A]" />
-                          <span className="text-gray-700">Duplicate</span>
+                          <Trash2 className="w-4 h-4 text-red-500" />
+                          <span className="text-red-600">Delete</span>
                         </button>
                         <button
                           onClick={() => handleInviteClick(course.id)}
@@ -674,12 +675,12 @@ export function InstructorDashboardCourses({ onCreateCourse, onEditCourse }: Ins
                           <span className="text-gray-700">View Analytics</span>
                         </button>
                         <button
-                          onClick={() => handleDuplicate(course.id)}
-                          className="w-full px-4 py-2 text-left flex items-center gap-3 hover:bg-gray-50 transition-colors"
+                          onClick={() => handleDeleteClick(course.id)}
+                          className="w-full px-4 py-2 text-left flex items-center gap-3 hover:bg-red-50 transition-colors"
                           style={{ fontFamily: 'Inter, sans-serif' }}
                         >
-                          <Copy className="w-4 h-4 text-[#6E5B6A]" />
-                          <span className="text-gray-700">Duplicate</span>
+                          <Trash2 className="w-4 h-4 text-red-500" />
+                          <span className="text-red-600">Delete</span>
                         </button>
                         <button
                           onClick={() => handleInviteClick(course.id)}
@@ -774,12 +775,12 @@ export function InstructorDashboardCourses({ onCreateCourse, onEditCourse }: Ins
                           </button>
 
                           <button
-                            onClick={() => handleDuplicate(course.id)}
-                            className="w-full px-4 py-2 text-left flex items-center gap-3 hover:bg-gray-50 transition-colors"
+                            onClick={() => handleDeleteClick(course.id)}
+                            className="w-full px-4 py-2 text-left flex items-center gap-3 hover:bg-red-50 transition-colors"
                             style={{ fontFamily: 'Inter, sans-serif' }}
                           >
-                            <Copy className="w-4 h-4 text-[#6E5B6A]" />
-                            <span className="text-[#202732]">Duplicate</span>
+                            <Trash2 className="w-4 h-4 text-red-500" />
+                            <span className="text-red-600">Delete</span>
                           </button>
 
                           <button

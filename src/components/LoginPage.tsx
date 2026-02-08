@@ -103,8 +103,8 @@ export function LoginPage({ onBackToHome }: { onBackToHome: () => void }) {
               type="button"
               onClick={() => setMode('signin')}
               className={`flex-1 py-2.5 rounded-lg transition-all duration-300 ${mode === 'signin'
-                  ? 'bg-[#6E5B6A] text-white shadow-md'
-                  : 'text-[#202732] hover:bg-white/50'
+                ? 'bg-[#6E5B6A] text-white shadow-md'
+                : 'text-[#202732] hover:bg-white/50'
                 }`}
               style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}
             >
@@ -114,8 +114,8 @@ export function LoginPage({ onBackToHome }: { onBackToHome: () => void }) {
               type="button"
               onClick={() => setMode('signup')}
               className={`flex-1 py-2.5 rounded-lg transition-all duration-300 ${mode === 'signup'
-                  ? 'bg-[#6E5B6A] text-white shadow-md'
-                  : 'text-[#202732] hover:bg-white/50'
+                ? 'bg-[#6E5B6A] text-white shadow-md'
+                : 'text-[#202732] hover:bg-white/50'
                 }`}
               style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}
             >

@@ -8,6 +8,7 @@ export interface User {
   email: string;
   role: UserRole;
   avatar?: string;
+  bio?: string;
   points: number;
   badges: Badge[];
   enrolledCourses: string[]; // Course IDs

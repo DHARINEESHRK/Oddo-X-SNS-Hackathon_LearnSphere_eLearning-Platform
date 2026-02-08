@@ -127,104 +127,34 @@ export function StudentCourseDetail({
     reviewCount: reviewCount,
   };
 
-  const lessons: Lesson[] = [
-    {
-      id: '1',
-      title: 'Introduction to React',
-      type: 'video',
-      duration: '12 min',
-      isCompleted: true,
-      isLocked: false,
-    },
-    {
-      id: '2',
-      title: 'JSX Fundamentals',
-      type: 'video',
-      duration: '18 min',
-      isCompleted: true,
-      isLocked: false,
-    },
-    {
-      id: '3',
-      title: 'Components Deep Dive',
-      type: 'pdf',
-      duration: '15 min',
-      isCompleted: true,
-      isLocked: false,
-    },
-    {
-      id: '4',
-      title: 'Quiz: React Basics',
-      type: 'quiz',
-      duration: '10 min',
-      isCompleted: true,
-      isLocked: false,
-    },
-    {
-      id: '5',
-      title: 'Props and State',
-      type: 'video',
-      duration: '22 min',
-      isCompleted: true,
-      isLocked: false,
-    },
-    {
-      id: '6',
-      title: 'Event Handling',
-      type: 'video',
-      duration: '16 min',
-      isCompleted: false,
-      isLocked: false,
-    },
-    {
-      id: '7',
-      title: 'Lifecycle Methods',
-      type: 'pdf',
-      duration: '20 min',
-      isCompleted: false,
-      isLocked: false,
-    },
-    {
-      id: '8',
-      title: 'Hooks Introduction',
-      type: 'video',
-      duration: '25 min',
-      isCompleted: false,
-      isLocked: false,
-    },
-    {
-      id: '9',
-      title: 'useState and useEffect',
-      type: 'video',
-      duration: '30 min',
-      isCompleted: false,
-      isLocked: true,
-    },
-    {
-      id: '10',
-      title: 'Custom Hooks',
-      type: 'video',
-      duration: '20 min',
-      isCompleted: false,
-      isLocked: true,
-    },
-    {
-      id: '11',
-      title: 'Context API',
-      type: 'pdf',
-      duration: '18 min',
-      isCompleted: false,
-      isLocked: true,
-    },
-    {
-      id: '12',
-      title: 'Final Quiz',
-      type: 'quiz',
-      duration: '15 min',
-      isCompleted: false,
-      isLocked: true,
-    },
-  ];
+  // Get lessons from the actual course data, or use fallback
+  const lessons: Lesson[] = contextCourse?.lessons && contextCourse.lessons.length > 0
+    ? contextCourse.lessons.map((lesson, index) => ({
+      id: lesson.id,
+      title: lesson.title,
+      type: 'video' as const,
+      duration: lesson.duration || '10 min',
+      isCompleted: index < 2, // First 2 lessons marked as completed for demo
+      isLocked: index > 3, // Lock lessons after the 4th one for demo
+    }))
+    : [
+      {
+        id: 'intro-1',
+        title: 'Introduction to the Course',
+        type: 'video' as const,
+        duration: '10 min',
+        isCompleted: false,
+        isLocked: false,
+      },
+      {
+        id: 'intro-2',
+        title: 'Getting Started',
+        type: 'video' as const,
+        duration: '15 min',
+        isCompleted: false,
+        isLocked: false,
+      },
+    ];
 
   // Determine lesson to resume
   useEffect(() => {
@@ -365,7 +295,10 @@ export function StudentCourseDetail({
 
             {/* Resume/Start Button */}
             <motion.button
-              onClick={() => onLessonClick(resumeLessonId)}
+              onClick={() => {
+                const startLessonId = lessons.find(l => !l.isCompleted && !l.isLocked)?.id || lessons[0]?.id;
+                if (startLessonId) onLessonClick(startLessonId);
+              }}
               className="mt-6 flex items-center gap-3 px-8 py-4 bg-[#6E5B6A] text-white rounded-xl font-bold shadow-lg shadow-[#6E5B6A]/30 hover:shadow-xl hover:shadow-[#6E5B6A]/40 transition-all hover:bg-[#5d4d59]"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}

@@ -47,8 +47,13 @@ const mockCourses: Course[] = [
   },
 ];
 
-export function InstructorCoursesPage() {
-  const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
+interface InstructorCoursesPageProps {
+  onBack?: () => void;
+  initialCourseId?: string | null;
+}
+
+export function InstructorCoursesPage({ onBack, initialCourseId }: InstructorCoursesPageProps) {
+  const [selectedCourseId, setSelectedCourseId] = useState<string | null>(initialCourseId || null);
   const [isCreatingNew, setIsCreatingNew] = useState(false);
   const { showToast } = useToast();
 
@@ -74,6 +79,7 @@ export function InstructorCoursesPage() {
     <InstructorDashboardCourses
       onCreateCourse={() => setIsCreatingNew(true)}
       onEditCourse={(courseId) => setSelectedCourseId(courseId)}
+      onBack={onBack}
     />
   );
 }

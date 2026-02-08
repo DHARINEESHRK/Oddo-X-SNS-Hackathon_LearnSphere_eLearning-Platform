@@ -293,8 +293,8 @@ export function QuizEngine({ quiz, onComplete, userId = 'current-user' }: QuizEn
                                     key={idx}
                                     onClick={() => handleOptionSelect(currentQuestion.id, idx, allowMultiple)}
                                     className={`w-full text-left p-4 rounded-xl border-2 transition-all flex items-center gap-4 ${isSelected
-                                            ? 'border-[#F5AE35] bg-[#F5AE35]/10'
-                                            : 'border-gray-700 bg-[#202732] hover:border-gray-600'
+                                        ? 'border-[#F5AE35] bg-[#F5AE35]/10'
+                                        : 'border-gray-700 bg-[#202732] hover:border-gray-600'
                                         }`}
                                     whileHover={{ scale: 1.01 }}
                                     whileTap={{ scale: 0.99 }}
@@ -335,10 +335,10 @@ export function QuizEngine({ quiz, onComplete, userId = 'current-user' }: QuizEn
                     onClick={nextQuestion}
                     disabled={!selectedAnswers[currentQuestion.id] || selectedAnswers[currentQuestion.id]?.length === 0}
                     className={`px-8 py-3 rounded-full font-semibold flex items-center gap-2 transition-all ${!selectedAnswers[currentQuestion.id] || selectedAnswers[currentQuestion.id]?.length === 0
-                            ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
-                            : isLastQuestion
-                                ? 'bg-[#2FBF71] text-white hover:bg-[#25a05e]'
-                                : 'bg-[#6E5B6A] text-white hover:bg-[#5d4d59]'
+                        ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                        : isLastQuestion
+                            ? 'bg-[#2FBF71] text-white hover:bg-[#25a05e]'
+                            : 'bg-[#6E5B6A] text-white hover:bg-[#5d4d59]'
                         }`}
                     whileHover={selectedAnswers[currentQuestion.id] ? { scale: 1.05 } : {}}
                     whileTap={selectedAnswers[currentQuestion.id] ? { scale: 0.95 } : {}}
